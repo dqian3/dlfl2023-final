@@ -3,11 +3,10 @@
 
 # Local imports
 from data import VideoDataset
-from simsiam import SimSiam
+from seg_model import SegmentationModel
 
 # DL packages
 import torch
-from torchvision.models.video import r2plus1d_18
 from tqdm import tqdm
 
 # Python packages
@@ -17,44 +16,42 @@ import argparse
 NUM_FRAMES = 22
 SPLIT = 11
 
+
 def train(dataloader, model, criterion, optimizer, epoch):
 
     total_loss = 0
 
     for batch in dataloader:
-        data = batch
-    
-        # Split video frames into first and second half
-        x1, x2 = data[:, :SPLIT], data[:, SPLIT:]
-        # Transpose, since video resnet expects channels as first dim
-        x1 = x1.transpose(1, 2)
-        x2 = x2.transpose(1, 2)
-    
-        p1, p2, h1, h2 = model(x1, x2)
+        data, labels = batch
 
-        # Note original simsiam uses
-        #         loss = -(criterion(p1, h2).mean() + criterion(p2, h1).mean()) * 0.5
-        # Which is using both views of the data to train the predictor. However, we only
-        # want to have the predictor predict the view of the first 11 frames
-        loss = -criterion(p1, h2).mean()
+        # Split video frames into first half
+        x = data[:, :SPLIT]
+
+        # get last mask by itself
+        # Dim = (B x 160 x 240)
+        # Probably need to flatten to use cross entropy
+        label_masks = labels[:,21,:,:]
+
+        # Predict and backwards
+        pred_masks = model(x)
+
+        loss = criterion(pred_masks, label_masks)
 
         total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        break
-
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     return total_loss / len(dataloader)
-
 
 def main():
     parser = argparse.ArgumentParser(description="Process training data parameters.")
 
     # Data arguments
-    parser.add_argument('--train_data', type=str, required=True, help='Path to the training data folder')
-    parser.add_argument('--output', type=str, default="simsiam.pkl", help='Path to the output folder')
+    parser.add_argument('--train_data', type=str, required=True, help='Path to the training data (labeled) folder')
+    parser.add_argument('--output', type=str, default="final_model.pkl", help='Path to the output folder')
+    parser.add_argument('--pretrained', type=str, default="simsiam.pkl", help='Path to pretrained simsiam network')
 
     # Hyperparam args
     parser.add_argument('--num_epochs', type=int, default=10, help='Number of training epochs')
@@ -68,18 +65,19 @@ def main():
     args = parser.parse_args()
 
     # You can now use args.training_data, args.output, and args.num_epochs in your program
-    print(f"Training Data Folder: {args.train_data}")
+    print(f"Unlabeled Training Data Folder: {args.train_data}")
+    print(f"Pretrained model: {args.train_data}")
     print(f"Output file: {args.output}")
     print(f"Number of Epochs: {args.num_epochs}")
     print(f"Batch size: {args.batch_size}")
     print(f"SGD Learning Rate: {args.lr}")
 
     # Define model
-    backbone = r2plus1d_18
-    model = SimSiam(backbone)
+    pretrained = torch.load(args.pretrained)
+    model = SegmentationModel(pretrained)
 
     # Load Data
-    dataset = VideoDataset(args.train_data, 13000, idx_offset=2000, has_label=False)
+    dataset = VideoDataset(args.train_data, 1000, idx_offset=0, has_label=True)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
@@ -87,12 +85,12 @@ def main():
     os.remove(args.output)
 
     # Train!
-    criterion = torch.nn.CosineSimilarity(dim=1)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    criterion = None # TODO
+    optimizer = None # TODO
+
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 
         iterator = tqdm(iterator)
-
 
     train_loss = []
     for i in iterator:
