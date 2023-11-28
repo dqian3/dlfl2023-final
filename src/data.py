@@ -1,3 +1,5 @@
+import os
+
 import torch
 import numpy as np
 
@@ -5,7 +7,6 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 from PIL import Image
-
 
 # These numbers are mean and std values computed over a sample of 500 training samples
 normalize = transforms.Normalize(mean=[0.5062, 0.5045, 0.5009],
@@ -38,9 +39,9 @@ class VideoDataset(Dataset):
         return self.size
 
     def __getitem__(self, i):
-        img_dir = self.root_dir + f"/video_{self.idx_offset + i}/"
+        img_dir = os.path.join(self.root_dir, f"video_{self.idx_offset + i}")
 
-        frames = [Image.open(img_dir + f"image_{j}.png") for j in range(self.num_frames)]
+        frames = [Image.open(os.path.join(img_dir, f"image_{j}.png")) for j in range(self.num_frames)]
 
         # Load the frames into data
         data = [self.transform(img) for img in frames]
@@ -56,5 +57,15 @@ class VideoDataset(Dataset):
 
         return data
 
+
+# Shortcuts for our data
+def LabeledDataset(base_dir):
+    return VideoDataset(os.path.join(base_dir, "train"), 1000, idx_offset=0)
+
+def UnlabeledDataset(base_dir):
+    return VideoDataset(os.path.join(base_dir, "unlabeled"), 13000, idx_offset=2000, has_label=False)
+
+def ValidationDataset(base_dir):
+    return VideoDataset(os.path.join(base_dir, "val"), 1000, idx_offset=1000)
 
 

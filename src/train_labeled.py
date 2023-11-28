@@ -64,13 +64,13 @@ def main():
     # Parsing arguments
     args = parser.parse_args()
 
-    # You can now use args.training_data, args.output, and args.num_epochs in your program
-    print(f"Unlabeled Training Data Folder: {args.train_data}")
+    print(f"Base training data folder: {args.train_data}")
     print(f"Pretrained model: {args.train_data}")
     print(f"Output file: {args.output}")
-    print(f"Number of Epochs: {args.num_epochs}")
+    
+    print(f"Number of epochs: {args.num_epochs}")
     print(f"Batch size: {args.batch_size}")
-    print(f"SGD Learning Rate: {args.lr}")
+    print(f"SGD learning rate: {args.lr}")
 
     # Define model
     pretrained = torch.load(args.pretrained)

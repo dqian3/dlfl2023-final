@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Local imports
-from data import VideoDataset
+from data import UnlabeledDataset
 from simsiam import SimSiam
 
 # DL packages
@@ -65,19 +65,19 @@ def main():
     # Parsing arguments
     args = parser.parse_args()
 
-    # You can now use args.training_data, args.output, and args.num_epochs in your program
-    print(f"Labeled Training Data Folder: {args.train_data}")
+    print(f"Base training data folder: {args.train_data}")
     print(f"Output file: {args.output}")
-    print(f"Number of Epochs: {args.num_epochs}")
+
+    print(f"Number of epochs: {args.num_epochs}")
     print(f"Batch size: {args.batch_size}")
-    print(f"SGD Learning Rate: {args.lr}")
+    print(f"SGD learning rate: {args.lr}")
 
     # Define model
     backbone = r2plus1d_18
     model = SimSiam(backbone)
 
     # Load Data
-    dataset = VideoDataset(args.train_data, 13000, idx_offset=2000, has_label=False)
+    dataset = UnlabeledDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
