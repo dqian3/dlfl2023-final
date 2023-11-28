@@ -41,14 +41,20 @@ class VideoDataset(Dataset):
         img_dir = self.root_dir + f"/video_{self.idx_offset + i}/"
 
         frames = [Image.open(img_dir + f"image_{j}.png") for j in range(self.num_frames)]
-        frames = [self.transform(img) for img in frames]
-        frames = torch.stack(frames)
+
+        # Load the frames into data
+        data = [self.transform(img) for img in frames]
+        data = torch.stack(data)
+        
+        # close file pointers
+        for frame in frames:
+            frame.close()
         
         if (self.has_label):
             label = np.load(img_dir + "mask.npy")
-            return frames, label
+            return data, label
 
-        return frames
+        return data
 
 
 
