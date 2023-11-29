@@ -22,8 +22,9 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
     total_loss = 0
 
     start_time = time.time()
+    num_minutes = 0
 
-    for batch in dataloader:
+    for (i, batch) in enumerate(dataloader):
         data = batch
 
         data = data.to(device)
@@ -46,6 +47,12 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        if (time.time() - start_time > 60 * num_minutes):
+            num_minutes = (time.time() - start_time) // 60
+            print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
+        
+
 
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
