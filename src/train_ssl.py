@@ -101,8 +101,10 @@ def main():
         model = model.cuda()
         criterion = criterion.cuda()
         device = torch.device("cuda:0")
+        print("Using cuda!")
     else:
         device = torch.device("cpu")
+        print("Using CPU!")
 
     train_loss = []
     for i in iterator:
