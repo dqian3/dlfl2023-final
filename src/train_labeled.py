@@ -12,6 +12,7 @@ from tqdm import tqdm
 # Python packages
 import os
 import argparse
+import time
 
 NUM_FRAMES = 22
 SPLIT = 11
@@ -20,6 +21,7 @@ SPLIT = 11
 def train(dataloader, model, criterion, optimizer, epoch):
 
     total_loss = 0
+    start_time = time.time()
 
     for batch in dataloader:
         data, labels = batch
@@ -43,6 +45,8 @@ def train(dataloader, model, criterion, optimizer, epoch):
         optimizer.step()
 
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
+    print(f"Took {(time.time() - start_time):2f} s")
+
     return total_loss / len(dataloader)
 
 def main():
