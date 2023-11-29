@@ -24,7 +24,7 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
     start_time = time.time()
     num_minutes = 0
 
-    for batch in dataloader:
+    for (i, batch) in enumerate(dataloader):
         data, labels = batch
         data = data.to(device)
         labels = labels.to(device)
