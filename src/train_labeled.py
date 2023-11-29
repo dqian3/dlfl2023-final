@@ -18,13 +18,14 @@ NUM_FRAMES = 22
 SPLIT = 11
 
 
-def train(dataloader, model, criterion, optimizer, epoch):
-
+def train(dataloader, model, criterion, optimizer, device, epoch):
     total_loss = 0
     start_time = time.time()
 
     for batch in dataloader:
         data, labels = batch
+        data = data.to(device)
+        labels = labels.to(device)
 
         # Split video frames into first half
         x = data[:, :SPLIT]
@@ -96,9 +97,17 @@ def main():
     if (args.use_tqdm): 
         iterator = tqdm(iterator)
 
+    if torch.cuda.is_available():
+        model = model.cuda()
+        criterion = criterion.cuda()
+        device = torch.device("cuda:0")
+    else:
+        device = torch.device("cpu")
+
+
     train_loss = []
     for i in iterator:
-        epoch_loss = train(train_dataloader, model, criterion, optimizer, i + 1)
+        epoch_loss = train(train_dataloader, model, criterion, optimizer, device, i + 1)
         train_loss.append(epoch_loss)
 
         # Save model every 10 epochs, in case our job dies lol
