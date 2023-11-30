@@ -48,11 +48,10 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         loss.backward()
         optimizer.step()
 
-        if (time.time() - start_time > 60 * num_minutes):
+        if (time.time() - start_time) // 60 > num_minutes:
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
         
-
 
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
@@ -66,6 +65,7 @@ def main():
     # Data arguments
     parser.add_argument('--train_data', type=str, required=True, help='Path to the training (unlabeled) folder')
     parser.add_argument('--output', type=str, default="simsiam.pkl", help='Path to the output folder')
+    parser.add_argument('--checkpoint', default=None, help='Path to the model checkpoint to continue training off of')
 
     # Hyperparam args
     parser.add_argument('--num_epochs', type=int, default=10, help='Number of training epochs')
@@ -87,7 +87,13 @@ def main():
 
     # Define model
     backbone = r2plus1d_18
-    model = SimSiam(backbone)
+
+    if args.checkpoint:
+        model = torch.load(args.checkpoint)
+        print(f"Initializing model from weights of {args.checkpoint}")
+    else:
+        model = SimSiam(backbone)
+        print(f"Initializing model from random weights")
 
     # Load Data
     dataset = UnlabeledDataset(args.train_data)
