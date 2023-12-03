@@ -40,8 +40,7 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         label_masks = labels[:,21,:,:].long()
 
         # Predict and backwards
-        pred_masks, _ = model(x)
-        # Transpose class to back and flatten
+        _, pred_masks = model(x)
 
         loss = criterion(pred_masks, label_masks)
 
