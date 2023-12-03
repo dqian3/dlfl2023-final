@@ -53,9 +53,6 @@ class SegmentationModel(nn.Module):
                 x = self.encoder(x)
                 x = self.predictor(x)
 
-
-        print(x.shape)
-
         x = self.project(x)
 
         # Add channels dim
