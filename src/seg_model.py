@@ -42,7 +42,6 @@ class SegmentationModel(nn.Module):
         
         self.upsample = nn.UpsamplingBilinear2d(scale_factor=2)
 
-        self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
         if self.finetune:
@@ -63,4 +62,4 @@ class SegmentationModel(nn.Module):
         x = self.deconv1(x)
         x = self.upsample(x)
 
-        return self.softmax(x), x
+        return x
