@@ -15,7 +15,7 @@ class SegmentationModel(nn.Module):
     '''
     Given pretrained simsiam model, construct the network
     '''
-    def __init__(self, pretrained: SimSiam, prev_dim=2048, num_classes=49, finetune=False):
+    def __init__(self, pretrained: SimSiam, prev_dim=1000, num_classes=49, finetune=False):
         super(SegmentationModel, self).__init__()
         
         self.finetune = finetune

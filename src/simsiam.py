@@ -8,10 +8,10 @@ class SimSiam(nn.Module):
     """
     Build a SimSiam model.
     """
-    def __init__(self, base_encoder, dim=2048, pred_dim=512):
+    def __init__(self, base_encoder, dim=1000, pred_dim=400):
         """
-        dim: feature dimension (default: 2048)
-        pred_dim: hidden dimension of the predictor (default: 512)
+        dim: feature dimension (default: 1000)
+        pred_dim: hidden dimension of the predictor (default: 400)
         """
         super(SimSiam, self).__init__()
 
