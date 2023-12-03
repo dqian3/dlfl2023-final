@@ -52,7 +52,7 @@ class VideoDataset(Dataset):
             frame.close()
         
         if (self.has_label):
-            label = np.load(img_dir + "mask.npy")
+            label = np.load(os.path.join(img_dir, "mask.npy"))
             return data, label
 
         return data

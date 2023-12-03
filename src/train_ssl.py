@@ -95,6 +95,8 @@ def main():
         model = SimSiam(backbone)
         print(f"Initializing model from random weights")
 
+    print(f"model has {sum(p.numel() for p in model.parameters())} params")
+
     # Load Data
     dataset = UnlabeledDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)

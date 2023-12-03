@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Local imports
-from data import VideoDataset
+from data import LabeledDataset
 from seg_model import SegmentationModel
 
 # DL packages
@@ -31,14 +31,17 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
 
         # Split video frames into first half
         x = data[:, :SPLIT]
+        # Transpose, since video resnet expects channels as first dim
+        x = x.transpose(1, 2)
 
         # get last mask by itself
         # Dim = (B x 160 x 240)
         # Probably need to flatten to use cross entropy
-        label_masks = labels[:,21,:,:]
+        label_masks = labels[:,21,:,:].long()
 
         # Predict and backwards
-        pred_masks = model(x)
+        pred_masks, _ = model(x)
+        # Transpose class to back and flatten
 
         loss = criterion(pred_masks, label_masks)
 
@@ -94,8 +97,10 @@ def main():
         model = SegmentationModel(pretrained)
         print(f"Initializing model from random weights")
 
+    print(f"model has {sum(p.numel() for p in model.parameters())} params")
+
     # Load Data
-    dataset = VideoDataset(args.train_data, 1000, idx_offset=0, has_label=True)
+    dataset = LabeledDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
@@ -103,8 +108,8 @@ def main():
     os.remove(args.output)
 
     # Train!
-    criterion = None # TODO
-    optimizer = None # TODO
+    criterion = torch.nn.CrossEntropyLoss() # TODO
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr) # TODO
 
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 
