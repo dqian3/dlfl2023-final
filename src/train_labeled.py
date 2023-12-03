@@ -2,8 +2,9 @@
 # coding: utf-8
 
 # Local imports
-from data import LabeledDataset
+from data import LabeledDataset, ValidationDataset
 from seg_model import SegmentationModel
+from validate import validate
 
 # DL packages
 import torch
@@ -53,7 +54,6 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
 
-
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
 
@@ -88,26 +88,32 @@ def main():
     print(f"SGD learning rate: {args.lr}")
 
     # Define model
-    pretrained = torch.load(args.pretrained)
     if args.checkpoint:
-        model = torch.load(args.checkpoint)
+        model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
         print(f"Initializing model from weights of {args.checkpoint}")
     else:
-        model = SegmentationModel(pretrained)
+        pretrained = torch.load(args.pretrained)
+        model = SegmentationModel(pretrained, finetune=True)
         print(f"Initializing model from random weights")
 
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
 
     # Load Data
     dataset = LabeledDataset(args.train_data)
+    val_dataset = ValidationDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
     torch.save(model, args.output)
     os.remove(args.output)
 
     # Train!
-    criterion = torch.nn.CrossEntropyLoss() # TODO
+    # Weight criterion so that empty class matters less!
+    weights = torch.ones(49)
+    weights[0] = 1 / 50 # rough estimate of number of pixels that are background
+
+    criterion = torch.nn.CrossEntropyLoss(weight=weights) 
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr) # TODO
 
     iterator = range(args.num_epochs)
@@ -130,10 +136,13 @@ def main():
         epoch_loss = train(train_dataloader, model, criterion, optimizer, device, i + 1)
         train_loss.append(epoch_loss)
 
+        val_iou = validate(model, val_dataloader, device=device)
+        print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
+
         # Save model every 10 epochs, in case our job dies lol
         if i % 10 == 9:
             file, ext = os.path.splitext(args.output)
-            torch.save(model, file + f"_{i}" + ext)
+            torch.save(model, file + f"_{i + 1}" + ext)
 
     print(train_loss)
     torch.save(model, args.output)
