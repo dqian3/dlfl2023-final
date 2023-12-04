@@ -14,9 +14,18 @@ normalize = transforms.Normalize(mean=[0.5062, 0.5045, 0.5009],
 
 # Inverse transformation: needed for plotting.
 unnormalize = transforms.Normalize(
-   mean=[-0.5059/0.0570, -0.5045/0.0568, -0.5011/0.0613],
+   mean=[-0.5062/0.0570, -0.5045/0.0568, -0.5009/0.0613],
    std=[1/0.0570, 1/0.0568, 1/0.0613]
 )
+
+
+def unresize_mask(mask):
+    mask = torch.tensor(mask)
+    mask = mask.unsqueeze(0) # add a channel dim
+    mask = transforms.Resize((256, 256), interpolation=transforms.InterpolationMode.NEAREST)(mask)
+    mask = mask.squeeze(0) # remove fake channel dim
+
+    return mask
 
 
 class VideoDataset(Dataset):
@@ -31,6 +40,7 @@ class VideoDataset(Dataset):
         self.transform = transforms.Compose([
             # Skip some of the other transformations, since we are less worried about
             # scale and color variation
+            transforms.Resize((256, 256)),
             transforms.ToTensor(),  # convert PIL to Pytorch Tensor
             normalize,
         ])
