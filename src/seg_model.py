@@ -36,11 +36,29 @@ class SegmentationModel(nn.Module):
         self.toclasses = nn.Conv1d(1, num_classes, kernel_size=1)
 
         self.deconv1 = nn.Sequential(
-            nn.ConvTranspose2d(num_classes, num_classes, 8, stride=4, padding=2,
+            nn.ConvTranspose2d(num_classes, num_classes, 4, stride=2, padding=1,
                 output_padding=0, groups=num_classes,
                 bias=False)
         )
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(num_classes, num_classes, kernel_size=3, padding=1, groups=num_classes),
+            nn.BatchNorm2d(num_classes),
+            nn.LeakyReLu()
+        )
         
+        self.deconv2 = nn.Sequential(
+            nn.ConvTranspose2d(num_classes, num_classes, 4, stride=2, padding=1,
+                output_padding=0, groups=num_classes,
+                bias=False)
+        )
+
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(num_classes, num_classes, kernel_size=3, padding=1, groups=num_classes),
+            nn.BatchNorm2d(num_classes),
+            nn.LeakyReLu()
+        )
+
         self.upsample = nn.UpsamplingBilinear2d(scale_factor=2)
 
 
@@ -62,7 +80,8 @@ class SegmentationModel(nn.Module):
         x = self.toclasses(x)
         (B, C, D) = x.shape
         x = x.reshape(B, C, 20, 30)
-        x = self.deconv1(x)
+        x = self.conv1(self.deconv1(x))
+        x = self.conv2(self.deconv2(x))
         x = self.upsample(x)
 
         return x
