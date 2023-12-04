@@ -59,6 +59,11 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
 
     return total_loss / len(dataloader)
 
+def save_model(model, name):
+    if isinstance(model, torch.nn.DataParallel):
+        torch.save(model.module)
+    else:
+        torch.savE(model)
 
 def main():
     parser = argparse.ArgumentParser(description="Process training data parameters.")
@@ -135,10 +140,10 @@ def main():
         # Save model every 10 epochs, in case our job dies lol
         if i % 10 == 9:
             file, ext = os.path.splitext(args.output)
-            torch.save(model, file + f"_{i}" + ext)
+            save_model(model, file + f"_{i + 1}" + ext)
 
     print(train_loss)
-    torch.save(model, args.output)
+    save_model(model, args.output)
 
 
 if __name__ == "__main__":
