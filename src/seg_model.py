@@ -15,13 +15,14 @@ class SegmentationModel(nn.Module):
     '''
     Given pretrained simsiam model, construct the network
     '''
-    def __init__(self, pretrained: SimSiam, prev_dim=1000, num_classes=49, finetune=False):
+    def __init__(self, pretrained: SimSiam, prev_dim=1000, num_classes=49, finetune=False, use_predictor=True):
         super(SegmentationModel, self).__init__()
         
         self.finetune = finetune
 
         self.encoder = pretrained.encoder
         self.predictor = pretrained.predictor
+        self.use_predictor = use_predictor
 
         # Project to 600 = 30 * 20 for easier upsampling later. Also allows network to unshuffle
         # Representation I guess?
@@ -46,11 +47,13 @@ class SegmentationModel(nn.Module):
     def forward(self, x):
         if self.finetune:
             x = self.encoder(x)
-            x = self.predictor(x)
+            if (self.use_predictor):
+                x = self.predictor(x)
         else: 
             with torch.no_grad():
                 x = self.encoder(x)
-                x = self.predictor(x)
+                if (self.use_predictor):
+                    x = self.predictor(x)
 
         x = self.project(x)
 

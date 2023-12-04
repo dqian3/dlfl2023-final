@@ -1,7 +1,7 @@
 import torch
 from torchmetrics import JaccardIndex
 
-def validate(model, val_dataloader, device="cpu"):
+def validate(model, val_dataloader, device="cpu", target_frame=21):
     iou = JaccardIndex(task="multiclass", num_classes=49).to(device)
 
     total_iou = 0
@@ -18,7 +18,7 @@ def validate(model, val_dataloader, device="cpu"):
             x = x.transpose(1, 2)
             masks = torch.argmax(model(x), dim=1)
     
-            total_iou += iou(masks, target[:,21])
+            total_iou += iou(masks, target[:,target_frame])
             num_batches += 1
         
     return total_iou / num_batches

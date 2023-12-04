@@ -90,8 +90,13 @@ def main():
     backbone = r2plus1d_18
 
     if args.checkpoint:
+        model = SimSiam(r2plus1d_18)
         model = torch.load(args.checkpoint)
         print(f"Initializing model from weights of {args.checkpoint}")
+        if torch.cuda.device_count() > 1:
+            print(f"Using {torch.cuda.device_count()} GPUs!")
+            model = torch.nn.DataParallel(model)
+
     else:
         model = SimSiam(backbone)
         print(f"Initializing model from random weights")

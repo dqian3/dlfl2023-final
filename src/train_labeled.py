@@ -5,10 +5,13 @@
 from data import LabeledDataset, ValidationDataset
 from seg_model import SegmentationModel
 from validate import validate
+from simsiam import SimSiam
 
 # DL packages
 import torch
+from torchvision.models.video import r2plus1d_18
 from tqdm import tqdm
+
 
 # Python packages
 import os
@@ -19,7 +22,7 @@ NUM_FRAMES = 22
 SPLIT = 11
 
 
-def train(dataloader, model, criterion, optimizer, device, epoch):
+def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, target_frame=21):
     total_loss = 0
 
     start_time = time.time()
@@ -37,10 +40,9 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         # Transpose, since video resnet expects channels as first dim
         x = x.transpose(1, 2)
 
-        # get last mask by itself
+        # get mask by itself
         # Dim = (B x 160 x 240)
-        # Probably need to flatten to use cross entropy
-        label_masks = labels[:,21,:,:].long()
+        label_masks = labels[:,target_frame,:,:].long()
 
         # Predict and backwards
         pred_masks = model(x)
@@ -77,6 +79,7 @@ def main():
 
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
+    parser.add_argument('--skip_predictor', action='store_false', help='Skip prediction (i.e. predict 11th frame segmention, rather than 22nd)')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -89,13 +92,23 @@ def main():
     print(f"Batch size: {args.batch_size}")
     print(f"SGD learning rate: {args.lr}")
 
+    target_frame = 10 if args.skip_predictor else 21
+    print(f"Training segmentation for frame {target_frame}")
+
     # Define model
     if args.checkpoint:
         model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
         print(f"Initializing model from weights of {args.checkpoint}")
+
+        if (model.use_predictor == args.skip_predictor):
+            if (model.use_predictor):
+                print(f"Incompatibble training param: model uses predictor layer, but target is 11th frame")
+            else:
+                print(f"Incompatibble training param: model skips predictor layer, but target is 22nd frame")
+
     else:
         pretrained = torch.load(args.pretrained)
-        model = SegmentationModel(pretrained, finetune=True)
+        model = SegmentationModel(pretrained, finetune=True, use_predictor=(not args.skip_predictor))
         print(f"Initializing model from random weights")
 
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
@@ -127,6 +140,9 @@ def main():
         criterion = criterion.cuda()
         device = torch.device("cuda:0")
         print("Using cuda!")
+        if torch.cuda.device_count() > 1:
+            print(f"Using {torch.cuda.device_count()} GPUs!")
+            model = torch.nn.DataParallel(model)
 
     else:
         device = torch.device("cpu")
@@ -135,10 +151,10 @@ def main():
 
     train_loss = []
     for i in iterator:
-        epoch_loss = train(train_dataloader, model, criterion, optimizer, device, i + 1)
+        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1, target_frame=target_frame)
         train_loss.append(epoch_loss)
 
-        val_iou = validate(model, val_dataloader, device=device)
+        val_iou = validate(model, val_dataloader, device=device, target_frame=target_frame)
         print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
 
         # Save model every 10 epochs, in case our job dies lol
@@ -147,7 +163,7 @@ def main():
             torch.save(model, file + f"_{i + 1}" + ext)
 
     print(train_loss)
-    torch.save(model, args.output)
+    torch.save(model.state_dict(), args.output)
 
 
 if __name__ == "__main__":

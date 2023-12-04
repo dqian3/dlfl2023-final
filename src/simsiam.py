@@ -8,10 +8,10 @@ class SimSiam(nn.Module):
     """
     Build a SimSiam model.
     """
-    def __init__(self, base_encoder, dim=1000, pred_dim=400):
+    def __init__(self, base_encoder, dim=1000, pred_dim=1000):
         """
         dim: feature dimension (default: 1000)
-        pred_dim: hidden dimension of the predictor (default: 400)
+        pred_dim: hidden dimension of the predictor (default: 1000)
         """
         super(SimSiam, self).__init__()
 
@@ -27,7 +27,7 @@ class SimSiam(nn.Module):
                                         nn.Linear(prev_dim, prev_dim, bias=False),
                                         nn.BatchNorm1d(prev_dim),
                                         nn.ReLU(inplace=True), # second layer
-                                        self.encoder.fc,
+                                        nn.Linear(prev_dim, dim, bias=False),
                                         nn.BatchNorm1d(dim, affine=False)) # output layer
         self.encoder.fc[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
 
