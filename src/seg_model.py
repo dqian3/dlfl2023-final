@@ -44,7 +44,7 @@ class SegmentationModel(nn.Module):
         self.conv1 = nn.Sequential(
             nn.Conv2d(num_classes, num_classes, kernel_size=3, padding=1, groups=num_classes),
             nn.BatchNorm2d(num_classes),
-            nn.LeakyReLu()
+            nn.ReLU()
         )
         
         self.deconv2 = nn.Sequential(
@@ -56,7 +56,7 @@ class SegmentationModel(nn.Module):
         self.conv2 = nn.Sequential(
             nn.Conv2d(num_classes, num_classes, kernel_size=3, padding=1, groups=num_classes),
             nn.BatchNorm2d(num_classes),
-            nn.LeakyReLu()
+            nn.ReLU()
         )
 
         self.upsample = nn.UpsamplingBilinear2d(scale_factor=2)
