@@ -3,7 +3,7 @@
 
 # Local imports
 from data import UnlabeledDataset
-from vidtoseg.simsiam import SimSiam
+from vidtoseg.simsiam import SimSiamGSTA
 from vidtoseg.r2plus1d import R2Plus1DNet 
 
 # DL packages
@@ -101,7 +101,7 @@ def main():
         print(f"Initializing model from weights of {args.checkpoint}")
 
     else:
-        model = SimSiam(backbone)
+        model = SimSiamGSTA
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
@@ -139,7 +139,7 @@ def main():
         train_loss.append(epoch_loss)
 
         # Save model every 10 epochs, in case our job dies lol
-        if i % 10 == 9:
+        if i % 5 == 4:
             file, ext = os.path.splitext(args.output)
             save_model(model, file + f"_{i + 1}" + ext)
 

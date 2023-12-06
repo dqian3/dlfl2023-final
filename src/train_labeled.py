@@ -163,8 +163,8 @@ def main():
         val_iou = validate(model, val_dataloader, device=device, target_frame=target_frame)
         print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
 
-        # Save model every 10 epochs, in case our job dies lol
-        if i % 10 == 9:
+        # Save model every 5 epochs, in case our job dies lol
+        if i % 5 == 4:
             file, ext = os.path.splitext(args.output)
 
             save_model(model, file + f"_{i + 1}" + ext)
