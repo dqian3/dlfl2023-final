@@ -55,7 +55,7 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
         
-        
+
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
 
@@ -65,7 +65,7 @@ def save_model(model, name):
     if isinstance(model, torch.nn.DataParallel):
         torch.save(model.module)
     else:
-        torch.savE(model)
+        torch.save(model)
 
 def main():
     parser = argparse.ArgumentParser(description="Process training data parameters.")
