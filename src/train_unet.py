@@ -68,17 +68,19 @@ for epoch in range(1, num_epochs+1):
     start_time = time.time()
 
     model.eval()
-    for val_input, val_label in val_dataloader:
-        input, label = val_input.to(device), val_label.to(device)
-        input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
-        label = label.reshape(-1,label.shape[2],label.shape[3])
-        outputs = model(input)
-        outputs = F.interpolate(outputs, size=(160, 240), mode='bilinear', align_corners=False)
-        output = torch.argmax(outputs, dim=1)
-        jac = jaccard(output, label.to(device))
-        val_IoU_accuracy += jac
+    
+    with torch.no_grad():
+        for val_input, val_label in val_dataloader:
+            input, label = val_input.to(device), val_label.to(device)
+            input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
+            label = label.reshape(-1,label.shape[2],label.shape[3])
+            outputs = model(input)
+            outputs = F.interpolate(outputs, size=(160, 240), mode='bilinear', align_corners=False)
+            output = torch.argmax(outputs, dim=1)
+            jac = jaccard(output, label.to(device))
+            val_IoU_accuracy += jac
 
-    val_IoU_accuracy /= len(val_dataloader.dataset)   
+        val_IoU_accuracy /= len(val_dataloader.dataset)   
     print(f"Validation took {(time.time() - start_time):2f} s")
     print("Epoch {}: Training Loss:{:.6f} Val IoU: {:.6f}\n".format(epoch, train_loss, val_IoU_accuracy))
 
