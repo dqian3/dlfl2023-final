@@ -3,37 +3,36 @@
 import torch
 import torch.nn as nn
 
+from .r2plus1d import R2Plus1DNet
+from .gsta import MidMetaNet
 
-class SimSiam(nn.Module):
+class SimSiamGSTA(nn.Module):
     """
     Build a SimSiam model.
+
+    Makes the predictor layer much different...
     """
-    def __init__(self, backbone, dim=1024, pred_dim=512):
+    def __init__(self, dim=1024, pred_dim=512):
         """
-        dim: feature dimension (default: 2048)
+        dim: feature dimension (default: 1024)
         pred_dim: hidden dimension of the predictor (default: 512)
         """
-        super(SimSiam, self).__init__()
+        super(SimSiamGSTA, self).__init__()
 
         # create the backbone
-        self.backbone = backbone()
+        self.backbone = R2Plus1DNet()
 
-        # build a 3-layer projector
-        self.projector = nn.Sequential(nn.Linear(dim, dim, bias=False),
-                                        nn.BatchNorm1d(dim),
-                                        nn.ReLU(), # first layer
-                                        nn.Linear(dim, dim, bias=False),
-                                        nn.BatchNorm1d(dim),
-                                        nn.ReLU(), # second layer
-                                        nn.Linear(dim, dim, bias=False),
-                                        nn.BatchNorm1d(dim, affine=False)) # output layer
+        # build a gsta predictor
+        self.predictor = MidMetaNet(2 * 256, 256, 3)
 
-        # build a 2-layer predictor
-        # TODO: make this predictor smarter
-        self.predictor = nn.Sequential(nn.Linear(dim, pred_dim, bias=False),
-                                        nn.BatchNorm1d(pred_dim),
-                                        nn.ReLU(inplace=True), # hidden layer
-                                        nn.Linear(pred_dim, dim)) # output layer
+
+        # build a 2-layer projector
+        self.dim = dim
+        self.pool = nn.AdaptiveAvgPool3d((1, 2, 2))
+        self.projector = nn.Sequential( nn.Linear(dim, dim, bias=False),
+                                        nn.BatchNorm1d(dim),
+                                        nn.ReLU(), 
+                                        nn.Linear(dim, pred_dim, bias=False))
 
     def forward(self, x1, x2):
         """
@@ -48,11 +47,24 @@ class SimSiam(nn.Module):
         # compute features for one view
         x1 = self.backbone(x1)
         x2 = self.backbone(x2)
+        # N x 256 x 2 x 16 x 16
+
+        p1 = self.predictor(x1)
+        p2 = self.predictor(x2)
+        # N x 256 x 2 x 16 x 16
+
+        p1 = self.pool(p1).view((-1, self.dim))
+        p2 = self.pool(p2).view((-1, self.dim))
+        # N x 256 x 1 x 2 x 2 => N x 1024
+
+        p1 = self.projector(p1)
+        p2 = self.projector(p2)
+
+        x1 = self.pool(x1).view((-1, self.dim))
+        x2 = self.pool(x2).view((-1, self.dim))
+        # N x 256 x 1 x 2 x 2 => N x 1024
 
         z1 = self.projector(x1) 
         z2 = self.projector(x2)
-
-        p1 = self.predictor(z1) 
-        p2 = self.predictor(z2) 
 
         return p1, p2, z1.detach(), z2.detach()

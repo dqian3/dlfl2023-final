@@ -172,7 +172,7 @@ class R2Plus1DNet(nn.Module):
 
         # global average pooling of the output
         # self.pool = nn.AdaptiveAvgPool3d(1)
-        self.pool = nn.AdaptiveAvgPool3d((1, 2, 2))
+        # self.pool = nn.AdaptiveAvgPool3d((1, 2, 2))
     
     def forward(self, x):
         x = self.conv1(x)
@@ -181,6 +181,7 @@ class R2Plus1DNet(nn.Module):
         x = self.conv4(x)
         x = self.conv5(x)
 
-        x = self.pool(x)
+        return x
+        # x = self.pool(x)
 
-        return x.view(-1, 1024)
+        # return x.view(-1, 1024)
