@@ -69,7 +69,7 @@ for epoch in range(1, num_epochs+1):
 
     model.eval()
     for val_input, val_label in val_dataloader:
-        input, label=val_input.to(device), val_label.to(device)
+        input, label = val_input.to(device), val_label.to(device)
         input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
         label = label.reshape(-1,label.shape[2],label.shape[3])
         outputs = model(input)
