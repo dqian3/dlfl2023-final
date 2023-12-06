@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-import torchvision
+
+from torchvision import models
 
 # Unet basic model structures.
 class ConvBlock(nn.Module):

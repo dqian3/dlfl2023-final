@@ -46,16 +46,13 @@ for epoch in range(1, num_epochs+1):
         input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
         label = label.reshape(-1,label.shape[2],label.shape[3])
         outputs = model(input)
-
-        print(outputs)
-
         outputs = F.interpolate(outputs, size=(160, 240), mode='bilinear', align_corners=False)
         loss = criterion(outputs,label.long())
         loss.backward()   
         optim.step()                                               
         optim.zero_grad()                                           
         train_loss += loss.item()  
-        break
+
     train_loss /= len(train_dataloader.dataset)                       
     
     for val_input, val_label in val_dataloader:
@@ -64,15 +61,13 @@ for epoch in range(1, num_epochs+1):
         label = label.reshape(-1,label.shape[2],label.shape[3])
         outputs = model(input)
         outputs = F.interpolate(outputs, size=(160, 240), mode='bilinear', align_corners=False)
-        output = nn.LogSoftmax()(outputs)
         output = torch.argmax(output, dim=1)
-        print(output.shape, label.shape)
         jac = jaccard(output, label.to(device))
         val_IoU_accuracy += jac
-        break
+
     val_IoU_accuracy /= len(val_dataloader.dataset)   
     
-    print("Epoch{}: Training Loss:{:.6f} Val IoU: {:.6f}\n".format(epoch, train_loss, val_IoU_accuracy))
+    print("Epoch {}: Training Loss:{:.6f} Val IoU: {:.6f}\n".format(epoch, train_loss, val_IoU_accuracy))
     if best_val_acc < val_IoU_accuracy:
         best_val_acc = val_IoU_accuracy
         torch.save(model, model_path)  
