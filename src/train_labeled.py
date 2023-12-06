@@ -5,7 +5,7 @@
 from data import LabeledDataset, ValidationDataset
 from seg_model import SegmentationModel
 from validate import validate
-from simsiam import SimSiam
+from vidtoseg.simsiam import SimSiam
 
 # DL packages
 import torch

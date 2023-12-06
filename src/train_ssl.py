@@ -3,7 +3,8 @@
 
 # Local imports
 from data import UnlabeledDataset
-from simsiam import SimSiam
+from vidtoseg.simsiam import SimSiam
+from vidtoseg.r2plus1d import R2Plus1DNet 
 
 # DL packages
 import torch
@@ -43,6 +44,7 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         # Which is using both views of the data to train the predictor. However, we only
         # want to have the predictor predict the view of the first 11 frames
         loss = -criterion(p1, h2).mean()
+        loss += -criterion(p2, h1).mean()
 
         total_loss += loss.item()
         optimizer.zero_grad()
@@ -53,7 +55,7 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
         
-
+        
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
 
@@ -92,19 +94,18 @@ def main():
     print(f"SGD learning rate: {args.lr}")
 
     # Define model
-    backbone = r2plus1d_18
+    backbone = R2Plus1DNet
 
     if args.checkpoint:
-        model = SimSiam(r2plus1d_18)
         model = torch.load(args.checkpoint)
         print(f"Initializing model from weights of {args.checkpoint}")
-        if torch.cuda.device_count() > 1:
-            print(f"Using {torch.cuda.device_count()} GPUs!")
-            model = torch.nn.DataParallel(model)
 
     else:
         model = SimSiam(backbone)
         print(f"Initializing model from random weights")
+        if torch.cuda.device_count() > 1:
+            print(f"Using {torch.cuda.device_count()} GPUs!")
+            model = torch.nn.DataParallel(model)
 
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
 
