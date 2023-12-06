@@ -81,7 +81,7 @@ class UpBlock(nn.Module):
         return x
     
 class UNetVidToSeg(nn.Module):
-    def __init__(self, model: SimSiamGSTA, n_classes=49):
+    def __init__(self, model: SimSiamGSTA, n_classes=49, finetune=True):
         '''
         model is trained SimSiam for r2plus1d
         
@@ -131,25 +131,26 @@ class UNetVidToSeg(nn.Module):
         self.up_blocks = nn.ModuleList(up_blocks)
         self.out = nn.Conv2d(128, n_classes, kernel_size=1, stride=1)
 
-    def forward(self, x, with_output_feature_map=False):
+    def forward(self, x):
+        # TODO adjust finetuning behavior
+
         outputs = []
         for i, block in enumerate(self.down_blocks):
             x = block(x)
 
-            print(len(self.down_blocks))
-            print(i)
+            # print(len(self.down_blocks))
+            # print(i)
 
             if i < len(self.down_blocks) - 1:
-                print(f"x after block {i} {x.shape}")
                 # avg pool the cross connections
                 cross_x = self.down_t_pools[i](x)
                 B, C, T, H, W = cross_x.shape # pool cross sections
                 cross_x = cross_x.view(B, C * T, H, W)
                 outputs.append(cross_x)
 
-        for cross_x in outputs:
-            print(cross_x.shape)
-        print(x.shape)
+        # for cross_x in outputs:
+        #     print(cross_x.shape)
+        # print(x.shape)
 
         x = self.bridge(x)
         B, C, T, H, W = x.shape
@@ -157,9 +158,9 @@ class UNetVidToSeg(nn.Module):
 
 
         for i, block in enumerate(self.up_blocks):
-            print(f"Up block {i}:")
-            print(x.shape)
-            print(outputs[-(i + 1)].shape)
+            # print(f"Up block {i}:")
+            # print(x.shape)
+            # print(outputs[-(i + 1)].shape)
 
             x = block(x, outputs[-(i + 1)])
 

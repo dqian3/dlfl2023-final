@@ -3,13 +3,14 @@
 
 # Local imports
 from data import LabeledDataset, ValidationDataset
-from seg_model import SegmentationModel
 from validate import validate
-from vidtoseg.simsiam import SimSiam
+from vidtoseg.simsiam import SimSiamGSTA
+from vidtoseg.unet import UNetVidToSeg
+
+from util import save_model
 
 # DL packages
 import torch
-from torchvision.models.video import r2plus1d_18
 from tqdm import tqdm
 
 
@@ -58,16 +59,13 @@ def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, t
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
 
+
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
 
     return total_loss / len(dataloader)
 
-def save_model(model, name):
-    if isinstance(model, torch.nn.DataParallel):
-        torch.save(model.module)
-    else:
-        torch.save(model)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Process training data parameters.")
@@ -85,7 +83,6 @@ def main():
 
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
-    parser.add_argument('--skip_predictor', action='store_true', help='Skip prediction (i.e. predict 11th frame segmention, rather than 22nd)')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -98,24 +95,17 @@ def main():
     print(f"Batch size: {args.batch_size}")
     print(f"SGD learning rate: {args.lr}")
 
-    target_frame = 10 if args.skip_predictor else 21
-    print(f"Training segmentation for frame {target_frame}")
-
     # Define model
     if args.checkpoint:
         model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
         print(f"Initializing model from weights of {args.checkpoint}")
-
-        if (model.use_predictor == args.skip_predictor):
-            if (model.use_predictor):
-                print(f"Incompatibble training param: model uses predictor layer, but target is 11th frame")
-            else:
-                print(f"Incompatibble training param: model skips predictor layer, but target is 22nd frame")
-
     else:
         pretrained = torch.load(args.pretrained)
-        model = SegmentationModel(pretrained, finetune=True, use_predictor=(not args.skip_predictor))
+        model = UNetVidToSeg(pretrained, finetune=True)
         print(f"Initializing model from random weights")
+        if torch.cuda.device_count() > 1:
+            print(f"Using {torch.cuda.device_count()} GPUs!")
+            model = torch.nn.DataParallel(model)
 
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
 
@@ -123,7 +113,6 @@ def main():
     dataset = LabeledDataset(args.train_data)
     val_dataset = ValidationDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
     torch.save(model, args.output)
@@ -135,7 +124,7 @@ def main():
     weights[0] = 1 / 50 # rough estimate of number of pixels that are background
 
     criterion = torch.nn.CrossEntropyLoss(weight=weights) 
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr) # TODO
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr) # TODO
 
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 
@@ -156,18 +145,20 @@ def main():
 
 
     train_loss = []
+    best_iou = 0
+
     for i in iterator:
-        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1, target_frame=target_frame)
+        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1)
         train_loss.append(epoch_loss)
 
-        val_iou = validate(model, val_dataloader, device=device, target_frame=target_frame)
+        val_iou = validate(model, val_dataset, device=device, sample=1)
         print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
 
-        # Save model every 5 epochs, in case our job dies lol
-        if i % 5 == 4:
-            file, ext = os.path.splitext(args.output)
+        # Save model if it has the best iou
+        if best_iou > val_iou:
+            save_model(model, args.output)
 
-            save_model(model, file + f"_{i + 1}" + ext)
+
 
     print(train_loss)
     save_model(model, args.output)

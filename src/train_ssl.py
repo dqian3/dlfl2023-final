@@ -61,11 +61,6 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
 
     return total_loss / len(dataloader)
 
-def save_model(model, name):
-    if isinstance(model, torch.nn.DataParallel):
-        torch.save(model.module)
-    else:
-        torch.save(model)
 
 def main():
     parser = argparse.ArgumentParser(description="Process training data parameters.")
@@ -94,8 +89,6 @@ def main():
     print(f"SGD learning rate: {args.lr}")
 
     # Define model
-    backbone = R2Plus1DNet
-
     if args.checkpoint:
         model = torch.load(args.checkpoint)
         print(f"Initializing model from weights of {args.checkpoint}")
