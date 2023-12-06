@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from torchvision import models
+import torchvision.models
 
 # Unet basic model structures.
 class ConvBlock(nn.Module):
@@ -86,7 +86,7 @@ class UNetWithResnet50Encoder(nn.Module):
 #         byol_model = torch.load('/home/yz10727/data/best_model_SSL_1.pth')
 #         resnet=byol_model.target_encoder.net
 #         resnet.requires_grad = False
-        resnet = models.resnet50(weights=None)
+        resnet = torchvision.models.resnet50(weights=None)
 #         resnet = torch.load('/scratch/yz10727/data/Pre_resnet50.pth')
 #         for param in resnet.parameters():
 #                 param.requires_grad = False
