@@ -1,3 +1,4 @@
 Dataset_Student
 __pycache__
 .ipynb_checkpoints
+*.pkl

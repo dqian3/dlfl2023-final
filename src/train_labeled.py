@@ -114,7 +114,7 @@ def main():
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
-    torch.save(model, args.output)
+    save_model(model, args.output)
     os.remove(args.output)
 
     # Train!
