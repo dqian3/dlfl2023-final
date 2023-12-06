@@ -138,10 +138,8 @@ def main():
         epoch_loss = train(train_dataloader, model, criterion, optimizer, device, i + 1)
         train_loss.append(epoch_loss)
 
-        # Save model every 10 epochs, in case our job dies lol
-        if i % 5 == 4:
-            file, ext = os.path.splitext(args.output)
-            save_model(model, file + f"_{i + 1}" + ext)
+        # Save model every epoch, in case our job dies lol
+        save_model(model, args.output)
 
     print(train_loss)
     save_model(model, args.output)

@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from vidtoseg.simsiam import SimSiamGSTA
+
 # Unet basic model structures.
 class ConvBlock(nn.Module):
     """
@@ -59,6 +61,8 @@ class UpBlock(nn.Module):
                 nn.Upsample(mode='bilinear', scale_factor=2),
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
             )
+        elif upsampling_method == "none":
+            self.upsample = torch.nn.Identity()
 
         self.conv_block_1 = ConvBlock(in_channels, out_channels)
         self.conv_block_2 = ConvBlock(out_channels, out_channels)
@@ -74,4 +78,92 @@ class UpBlock(nn.Module):
         x = torch.cat([x, down_x], 1)
         x = self.conv_block_1(x)
         x = self.conv_block_2(x)
+        return x
+    
+class UNetVidToSeg(nn.Module):
+    def __init__(self, model: SimSiamGSTA, n_classes=49):
+        '''
+        model is trained SimSiam for r2plus1d
+        
+        Down block outputs:
+        torch.Size([1, 32, 11, 128, 128])
+        torch.Size([1, 32, 11, 128, 128])
+        torch.Size([1, 64, 6, 64, 64])
+        torch.Size([1, 128, 3, 32, 32])
+        torch.Size([1, 256, 2, 16, 16])
+
+        Everything except first layer is pooled to frames = 2 and vid -> channel cross connections:
+        torch.Size([1, 160, 256, 256])
+        torch.Size([1, 160, 128, 128])
+        torch.Size([1, 64, 128, 128])
+        torch.Size([1, 128, 64, 64])
+        torch.Size([1, 256, 32, 32])
+        torch.Size([1, 512, 16, 16])
+        '''
+        super().__init__()
+
+        r2plus1d = model.backbone
+
+        down_blocks = list(r2plus1d.children())
+
+        # Pool each down blocks ouput across time, so that we don't have too many channels
+        # in the cross connection. Skip last down block, since that is the "bridge"
+        down_t_pools = [
+            torch.nn.AdaptiveAvgPool3d((5, None, None)),
+            torch.nn.AdaptiveAvgPool3d((5, None, None)),
+            torch.nn.AdaptiveAvgPool3d((2, None, None)),
+            torch.nn.AdaptiveAvgPool3d((2, None, None)),
+            torch.nn.AdaptiveAvgPool3d((2, None, None)),
+        ]
+
+        self.down_blocks = nn.ModuleList(down_blocks)
+        self.down_t_pools = nn.ModuleList(down_t_pools)
+
+        self.bridge = model.predictor
+
+        up_blocks = []
+
+        up_blocks.append(UpBlock(512, 256))
+        up_blocks.append(UpBlock(256, 128))
+        up_blocks.append(UpBlock(128 + 160, 128, up_conv_in_channels=128, up_conv_out_channels=128))
+        up_blocks.append(UpBlock(128 + 160, 128, up_conv_in_channels=128, up_conv_out_channels=128, upsampling_method="none"))
+
+        self.up_blocks = nn.ModuleList(up_blocks)
+        self.out = nn.Conv2d(128, n_classes, kernel_size=1, stride=1)
+
+    def forward(self, x, with_output_feature_map=False):
+        outputs = []
+        for i, block in enumerate(self.down_blocks):
+            x = block(x)
+
+            print(len(self.down_blocks))
+            print(i)
+
+            if i < len(self.down_blocks) - 1:
+                print(f"x after block {i} {x.shape}")
+                # avg pool the cross connections
+                cross_x = self.down_t_pools[i](x)
+                B, C, T, H, W = cross_x.shape # pool cross sections
+                cross_x = cross_x.view(B, C * T, H, W)
+                outputs.append(cross_x)
+
+        for cross_x in outputs:
+            print(cross_x.shape)
+        print(x.shape)
+
+        x = self.bridge(x)
+        B, C, T, H, W = x.shape
+        x = x.view(B, C * T, H, W)
+
+
+        for i, block in enumerate(self.up_blocks):
+            print(f"Up block {i}:")
+            print(x.shape)
+            print(outputs[-(i + 1)].shape)
+
+            x = block(x, outputs[-(i + 1)])
+
+        x = self.out(x)
+        x = nn.functional.interpolate(x, size=(160, 240), mode='bilinear')
+
         return x
