@@ -18,10 +18,10 @@ args = parser.parse_args()
 
 # Load the data with Daniel's data.py
 dataset = LabeledDataset(args.train_data)
-train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=3, shuffle=True, num_workers=2)
+train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=2)
 
 val_dataset = ValidationDataset(args.train_data)
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=3, shuffle=False, num_workers=2)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=2, shuffle=False, num_workers=2)
 
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -46,7 +46,7 @@ for epoch in range(1, num_epochs+1):
 
     model.train()
     for i, (input, label) in enumerate(train_dataloader): 
-        input, label=input.to(device), label.to(device)
+        input, label = input.to(device), label.to(device)
         input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
         label = label.reshape(-1,label.shape[2],label.shape[3])
         outputs = model(input)
