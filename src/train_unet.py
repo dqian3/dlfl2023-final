@@ -74,7 +74,7 @@ for epoch in range(1, num_epochs+1):
         label = label.reshape(-1,label.shape[2],label.shape[3])
         outputs = model(input)
         outputs = F.interpolate(outputs, size=(160, 240), mode='bilinear', align_corners=False)
-        output = torch.argmax(output, dim=1)
+        output = torch.argmax(outputs, dim=1)
         jac = jaccard(output, label.to(device))
         val_IoU_accuracy += jac
 
