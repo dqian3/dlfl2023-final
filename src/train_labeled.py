@@ -72,7 +72,7 @@ def main():
     # Data arguments
     parser.add_argument('--train_data', type=str, required=True, help='Path to the training data (labeled) folder')
     parser.add_argument('--output', type=str, default="final_model.pkl", help='Path to the output folder')
-    parser.add_argument('--pretrained', type=str, default="simsiam.pkl", help='Path to pretrained simsiam network')
+    parser.add_argument('--pretrained', default=None, help='Path to pretrained simsiam network (or start a fresh one)')
     parser.add_argument('--checkpoint', default=None, help='Path to the model checkpoint to continue training off of')
 
     # Hyperparam args
@@ -99,8 +99,14 @@ def main():
         model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
         print(f"Initializing model from weights of {args.checkpoint}")
     else:
-        pretrained = torch.load(args.pretrained)
-        model = UNetVidToSeg(pretrained, finetune=True)
+        if (args.pretrained is None):
+            print(f"Initializing base model from random weights")
+            base_model = SimSiamGSTA()
+        else:
+            print(f"Using pretraine base model {args.pretrained}")
+            base_model = torch.load(args.pretrained)
+
+        model = UNetVidToSeg(base_model, finetune=True)
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
