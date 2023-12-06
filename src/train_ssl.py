@@ -5,6 +5,7 @@
 from data import UnlabeledDataset
 from vidtoseg.simsiam import SimSiamGSTA
 from vidtoseg.r2plus1d import R2Plus1DNet 
+from util import save_model
 
 # DL packages
 import torch
@@ -54,7 +55,7 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         if (time.time() - start_time) // 60 > num_minutes:
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
-        
+
 
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")

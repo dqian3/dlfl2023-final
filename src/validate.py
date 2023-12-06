@@ -6,8 +6,8 @@ def validate(model, dataset, device="cpu", batch_size=2, target_frame=21, sample
     iou = JaccardIndex(task="multiclass", num_classes=49).to(device)
 
     if (sample):
-        sampled = torch.utils.data.RandomSampler(dataset, num_samples=sample)
-        data_loader = torch.utils.data.DataLoader(sampled, batch_size=batch_size, num_workers=2)
+        sampler = torch.utils.data.RandomSampler(dataset, num_samples=sample)
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2, sampler=sampler)
     else:
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 

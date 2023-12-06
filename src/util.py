@@ -1,3 +1,4 @@
+import torch
 
 def save_model(model, name):
     if isinstance(model, torch.nn.DataParallel):
