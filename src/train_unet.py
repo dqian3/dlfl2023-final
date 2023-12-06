@@ -5,6 +5,7 @@ from torch.optim import Adam
 from torchmetrics import JaccardIndex
 
 import argparse
+import time
 
 from unet.unet import *
 from data import UnlabeledDataset, LabeledDataset, ValidationDataset
@@ -39,9 +40,12 @@ for epoch in range(1, num_epochs+1):
     print("Training epoch: ", epoch)
     train_loss = 0   
     val_IoU_accuracy = 0 
-    model.train()
 
-    for input, label in train_dataloader: 
+    start_time = time.time()
+    num_minutes = 0
+
+    model.train()
+    for i, (input, label) in enumerate(train_dataloader): 
         input, label=input.to(device), label.to(device)
         input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
         label = label.reshape(-1,label.shape[2],label.shape[3])
@@ -53,8 +57,17 @@ for epoch in range(1, num_epochs+1):
         optim.zero_grad()                                           
         train_loss += loss.item()  
 
-    train_loss /= len(train_dataloader.dataset)                       
-    
+        if ((time.time() - start_time) // 60 > num_minutes):
+            num_minutes = (time.time() - start_time) // 60
+            print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(train_dataloader)}")
+
+    train_loss /= len(train_dataloader.dataset)  
+
+    # Timing                    
+    print(f"Training took {(time.time() - start_time):2f} s")
+    start_time = time.time()
+
+    model.eval()
     for val_input, val_label in val_dataloader:
         input, label=val_input.to(device), val_label.to(device)
         input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
@@ -66,8 +79,9 @@ for epoch in range(1, num_epochs+1):
         val_IoU_accuracy += jac
 
     val_IoU_accuracy /= len(val_dataloader.dataset)   
-    
+    print(f"Validation took {(time.time() - start_time):2f} s")
     print("Epoch {}: Training Loss:{:.6f} Val IoU: {:.6f}\n".format(epoch, train_loss, val_IoU_accuracy))
+
     if best_val_acc < val_IoU_accuracy:
         best_val_acc = val_IoU_accuracy
         torch.save(model, model_path)  
