@@ -131,6 +131,8 @@ class UNetVidToSeg(nn.Module):
         self.up_blocks = nn.ModuleList(up_blocks)
         self.out = nn.Conv2d(128, n_classes, kernel_size=1, stride=1)
 
+        self.upsample = nn.UpsamplingBilinear2d(size=(160, 240))
+
     def forward(self, x):
         # TODO adjust finetuning behavior
 
@@ -165,6 +167,6 @@ class UNetVidToSeg(nn.Module):
             x = block(x, outputs[-(i + 1)])
 
         x = self.out(x)
-        x = nn.functional.interpolate(x, size=(160, 240), mode='bilinear')
+        x = self.upsample(x)
 
         return x
