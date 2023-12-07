@@ -153,7 +153,7 @@ def main():
         epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1)
         train_loss.append(epoch_loss)
 
-        val_iou = validate(model, val_dataset, device=device, sample=1)
+        val_iou = validate(model, val_dataset, device=device, sample=100)
         print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
 
         # Save model if it has the best iou
