@@ -140,9 +140,6 @@ def main():
         criterion = criterion.cuda()
         device = torch.device("cuda:0")
         print("Using cuda!")
-        if torch.cuda.device_count() > 1:
-            print(f"Using {torch.cuda.device_count()} GPUs!")
-            model = torch.nn.DataParallel(model)
 
     else:
         device = torch.device("cpu")
