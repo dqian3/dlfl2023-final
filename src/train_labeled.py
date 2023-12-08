@@ -82,7 +82,7 @@ def main():
 
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
-    parser.add_argument('--skip_predictor', action='store_true', help='Skip prediction (i.e. predict 11th frame segmention, rather than 22nd)')
+    parser.add_argument('--no_prediction', action='store_true', help='Skip prediction (i.e. predict 11th frame segmention, rather than 22nd)')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -95,7 +95,7 @@ def main():
     print(f"Batch size: {args.batch_size}")
     print(f"SGD learning rate: {args.lr}")
 
-    target_frame = 10 if args.skip_predictor else 21
+    target_frame = 10 if args.no_prediction else 21
     print(f"Training segmentation for frame {target_frame}")
 
 
