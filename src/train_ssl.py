@@ -45,7 +45,6 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         # Which is using both views of the data to train the predictor. However, we only
         # want to have the predictor predict the view of the first 11 frames
         loss = -criterion(p1, h2).mean()
-        loss += -criterion(p2, h1).mean()
 
         total_loss += loss.item()
         optimizer.zero_grad()
