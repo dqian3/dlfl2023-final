@@ -159,8 +159,11 @@ def main():
         train_loss.append(epoch_loss)
 
         val_iou = validate(model, val_dataset, device=device, target_frame=target_frame)
+        print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
+
         # Save model if it has the best iou
-        if best_iou > val_iou:
+        if val_iou > best_iou:
+            best_iou = val_iou
             save_model(model, args.output)
 
 
