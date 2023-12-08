@@ -63,7 +63,7 @@ class UpBlock(nn.Module):
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
             )
         elif upsampling_method == "none":
-            self.upsample = torch.nn.Identity()
+            self.upsample = ConvBlock(up_conv_in_channels, up_conv_out_channels)
 
         self.conv_block_1 = ConvBlock(in_channels, out_channels)
         self.conv_block_2 = ConvBlock(out_channels, out_channels)
@@ -91,7 +91,7 @@ class UNetVidToSeg(nn.Module):
         torch.Size([1, 32, 11, 128, 128])
         torch.Size([1, 64, 6, 64, 64])
         torch.Size([1, 128, 3, 32, 32])
-        torch.Size([1, 256, 2, 16, 16])
+        # torch.Size([1, 256, 2, 16, 16])
 
         Everything except first layer is pooled to frames = 2 and vid -> channel cross connections:
         torch.Size([1, 160, 256, 256])
@@ -99,47 +99,37 @@ class UNetVidToSeg(nn.Module):
         torch.Size([1, 64, 128, 128])
         torch.Size([1, 128, 64, 64])
         torch.Size([1, 256, 32, 32])
-        torch.Size([1, 512, 16, 16])
+        # torch.Size([1, 512, 16, 16])
         '''
         super().__init__()
 
         r2plus1d = model.backbone
-
         down_blocks = list(r2plus1d.children())
-
-        cross_conns = [
-            MidMetaNet(11*32, 5 * 32, 3),
-            MidMetaNet(11*32, 5 * 32, 3),
-            MidMetaNet(6*64, 3 * 64, 3),
-            MidMetaNet(3*128, 2 * 128, 3),
-            MidMetaNet(2 * 256, 256, 3),
-        ]
 
         # Pool each down blocks ouput across time, so that we don't have too many channels
         # in the cross connection. Skip last down block, since that is the "bridge"
-        down_t_pools = [
-            torch.nn.AdaptiveAvgPool3d((5, None, None)),
-            torch.nn.AdaptiveAvgPool3d((5, None, None)),
-            torch.nn.AdaptiveAvgPool3d((2, None, None)),
-            torch.nn.AdaptiveAvgPool3d((2, None, None)),
-            torch.nn.AdaptiveAvgPool3d((2, None, None)),
-        ]
+        # down_t_pools = [
+        #     torch.nn.AdaptiveAvgPool3d((5, None, None)),
+        #     torch.nn.AdaptiveAvgPool3d((5, None, None)),
+        #     torch.nn.AdaptiveAvgPool3d((2, None, None)),
+        #     torch.nn.AdaptiveAvgPool3d((2, None, None)),
+        #     torch.nn.AdaptiveAvgPool3d((2, None, None)),
+        # ]
 
-        self.down_blocks = nn.ModuleList(down_blocks)
-        self.cross_conns = nn.ModuleList(cross_conns)
-        self.down_t_pools = nn.ModuleList(down_t_pools)
+        self.down_blocks = nn.ModuleList(down_blocks[:-1])
+        # self.down_t_pools = nn.ModuleList(down_t_pools)
 
-        self.bridge = model.predictor
-
+        self.bridge = MidMetaNet(3 * 128, 128, 4)
+        
         up_blocks = []
 
-        up_blocks.append(UpBlock(512, 256))
-        up_blocks.append(UpBlock(256, 128))
-        up_blocks.append(UpBlock(128 + 160, 128, up_conv_in_channels=128, up_conv_out_channels=128))
-        up_blocks.append(UpBlock(128 + 160, 128, up_conv_in_channels=128, up_conv_out_channels=128, upsampling_method="none"))
+        # up_blocks.append(UpBlock(512, 256))
+        up_blocks.append(UpBlock(192, 128, up_conv_in_channels=384, up_conv_out_channels=128))
+        up_blocks.append(UpBlock(96, 64, up_conv_in_channels=128, up_conv_out_channels=64))
+        up_blocks.append(UpBlock(64, 64, up_conv_in_channels=64, up_conv_out_channels=32, upsampling_method="none"))
 
         self.up_blocks = nn.ModuleList(up_blocks)
-        self.out = nn.Conv2d(128, n_classes, kernel_size=1, stride=1)
+        self.out = nn.Conv2d(64, n_classes, kernel_size=1, stride=1)
 
         self.upsample = nn.UpsamplingBilinear2d(size=(160, 240))
 
@@ -155,11 +145,15 @@ class UNetVidToSeg(nn.Module):
 
             if i < len(self.down_blocks) - 1:
                 # avg pool the cross connections
-                cross_x = self.cross_conns[i](x)
-                cross_x = self.down_t_pools[i](cross_x)
-                B, C, T, H, W = cross_x.shape # pool cross sections
-                cross_x = cross_x.view(B, C * T, H, W)
+                # cross_x = x
+                # cross_x = self.down_t_pools[i](x)
+                # B, C, T, H, W = cross_x.shape # pool cross sections
+                # cross_x = cross_x.view(B, C * T, H, W)
+
+                # Instead of pooling, just take the last frame and its channels for some spatial info
+                cross_x = x[:,:,-1]
                 outputs.append(cross_x)
+
 
         # for cross_x in outputs:
         #     print(cross_x.shape)
