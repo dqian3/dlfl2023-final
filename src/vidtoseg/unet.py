@@ -107,13 +107,13 @@ class UNetVidToSeg(nn.Module):
 
         down_blocks = list(r2plus1d.children())
 
-        # cross_conns = [
-        #     MidMetaNet(11*32, 5 * 32, 3),
-        #     MidMetaNet(11*32, 5 * 32, 3),
-        #     MidMetaNet(6*64, 3 * 64, 3),
-        #     MidMetaNet(3*128, 2 * 128, 3),
-        #     MidMetaNet(2 * 256, 256, 3),
-        # ]
+        cross_conns = [
+            MidMetaNet(11*32, 5 * 32, 3),
+            MidMetaNet(11*32, 5 * 32, 3),
+            MidMetaNet(6*64, 3 * 64, 3),
+            MidMetaNet(3*128, 2 * 128, 3),
+            MidMetaNet(2 * 256, 256, 3),
+        ]
 
         # Pool each down blocks ouput across time, so that we don't have too many channels
         # in the cross connection. Skip last down block, since that is the "bridge"
@@ -126,7 +126,7 @@ class UNetVidToSeg(nn.Module):
         ]
 
         self.down_blocks = nn.ModuleList(down_blocks)
-        # self.cross_conns = nn.ModuleList(cross_conns)
+        self.cross_conns = nn.ModuleList(cross_conns)
         self.down_t_pools = nn.ModuleList(down_t_pools)
 
         self.bridge = model.predictor
