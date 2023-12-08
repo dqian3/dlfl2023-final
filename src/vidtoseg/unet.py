@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from vidtoseg.gsta import MidMetaNet
 
 from vidtoseg.simsiam import SimSiamGSTA
 
@@ -13,7 +14,7 @@ class ConvBlock(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, padding=padding, kernel_size=kernel_size, stride=stride)
         self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU()
+        self.relu = nn.LeakyReLU()
         self.with_nonlinearity = with_nonlinearity
 
     def forward(self, x):
@@ -106,6 +107,14 @@ class UNetVidToSeg(nn.Module):
 
         down_blocks = list(r2plus1d.children())
 
+        # cross_conns = [
+        #     MidMetaNet(11*32, 5 * 32, 3),
+        #     MidMetaNet(11*32, 5 * 32, 3),
+        #     MidMetaNet(6*64, 3 * 64, 3),
+        #     MidMetaNet(3*128, 2 * 128, 3),
+        #     MidMetaNet(2 * 256, 256, 3),
+        # ]
+
         # Pool each down blocks ouput across time, so that we don't have too many channels
         # in the cross connection. Skip last down block, since that is the "bridge"
         down_t_pools = [
@@ -117,6 +126,7 @@ class UNetVidToSeg(nn.Module):
         ]
 
         self.down_blocks = nn.ModuleList(down_blocks)
+        # self.cross_conns = nn.ModuleList(cross_conns)
         self.down_t_pools = nn.ModuleList(down_t_pools)
 
         self.bridge = model.predictor
@@ -145,7 +155,8 @@ class UNetVidToSeg(nn.Module):
 
             if i < len(self.down_blocks) - 1:
                 # avg pool the cross connections
-                cross_x = self.down_t_pools[i](x)
+                cross_x = self.cross_conns[i](x)
+                cross_x = self.down_t_pools[i](cross_x)
                 B, C, T, H, W = cross_x.shape # pool cross sections
                 cross_x = cross_x.view(B, C * T, H, W)
                 outputs.append(cross_x)
