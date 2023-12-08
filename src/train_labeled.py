@@ -82,6 +82,7 @@ def main():
 
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
+    parser.add_argument('--skip_predictor', action='store_true', help='Skip prediction (i.e. predict 11th frame segmention, rather than 22nd)')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -93,6 +94,10 @@ def main():
     print(f"Number of epochs: {args.num_epochs}")
     print(f"Batch size: {args.batch_size}")
     print(f"SGD learning rate: {args.lr}")
+
+    target_frame = 10 if args.skip_predictor else 21
+    print(f"Training segmentation for frame {target_frame}")
+
 
     # Define model
     if args.checkpoint:
@@ -129,7 +134,7 @@ def main():
     weights[0] = 1 / 50 # rough estimate of number of pixels that are background
 
     criterion = torch.nn.CrossEntropyLoss(weight=weights) 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr) # TODO
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr) # TODO
 
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 
@@ -150,12 +155,10 @@ def main():
     best_iou = 0
 
     for i in iterator:
-        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1)
+        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1, target_frame=target_frame)
         train_loss.append(epoch_loss)
 
-        val_iou = validate(model, val_dataset, device=device, sample=200)
-        print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
-
+        val_iou = validate(model, val_dataset, device=device, target_frame=target_frame)
         # Save model if it has the best iou
         if best_iou > val_iou:
             save_model(model, args.output)
