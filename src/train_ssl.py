@@ -18,6 +18,8 @@ import os
 import argparse
 import time
 
+from vidtoseg.simsiam_orig import SimSiam
+
 
 NUM_FRAMES = 22
 SPLIT = 11
@@ -79,6 +81,7 @@ def main():
 
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
+    parser.add_argument('--original', action='store_true', help='Use original simsiam algorithm')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -96,7 +99,10 @@ def main():
         print(f"Initializing model from weights of {args.checkpoint}")
 
     else:
-        model = SimSiamGSTA(Parallel2DResNet, 256 * 11)
+        if args.original:
+            model = SimSiam(Parallel2DResNet)
+        else:
+            model = SimSiamGSTA(Parallel2DResNet, 256 * 11)
 
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
