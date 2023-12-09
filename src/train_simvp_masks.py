@@ -2,49 +2,60 @@
 # coding: utf-8
 
 # Local imports
-from data import UnlabeledDataset
+from data import LabeledDataset, ValidationDataset
+from simvp.modules import Decoder
 from simvp.simvp import SimVP_Model
+from validate import validate
+
+
 from util import save_model
 
 # DL packages
 import torch
 from tqdm import tqdm
 
+
 # Python packages
 import os
 import argparse
 import time
 
-from vidtoseg.simsiam_orig import SimSiam
-
-
 NUM_FRAMES = 22
 SPLIT = 11
 
-def train(dataloader, model, criterion, optimizer, device, epoch):
+
+def train_segmentation(dataloader, model, criterion, optimizer, device, epoch):
     total_loss = 0
 
     start_time = time.time()
     num_minutes = 0
+    print(f"Starting epoch {epoch}")
 
     model.train()
     for (i, batch) in enumerate(dataloader):
-        data = batch
-
+        data, labels = batch
         data = data.to(device)
+        labels = labels.to(device)
 
-        # Split video frames into first and second half
-        x1, x2 = data[:, :SPLIT], data[:, SPLIT:]
-    
-        output = model(x1)
-        loss = criterion(output, x2)
+        # Split video frames into first half
+        x = data[:, :SPLIT]
+        # Transpose, since video resnet expects channels as first dim
+
+        # get mask by itself
+        # Dim = (B x 160 x 240)
+        label_masks = labels[:,11:].long()
+
+        # Predict and backwards
+        pred_masks = model(x)
+
+        loss = criterion(pred_masks, label_masks)
 
         total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if (time.time() - start_time) // 60 > num_minutes:
+        if ((time.time() - start_time) // 60 > num_minutes):
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
 
@@ -55,12 +66,14 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
     return total_loss / len(dataloader)
 
 
+
 def main():
     parser = argparse.ArgumentParser(description="Process training data parameters.")
 
     # Data arguments
-    parser.add_argument('--train_data', type=str, required=True, help='Path to the training (unlabeled) folder')
-    parser.add_argument('--output', type=str, default="simsiam.pkl", help='Path to the output folder')
+    parser.add_argument('--train_data', type=str, required=True, help='Path to the training data (labeled) folder')
+    parser.add_argument('--output', type=str, default="final_model.pkl", help='Path to the output folder')
+    parser.add_argument('--pretrained', default=None, help='Path to pretrained simsiam network (or start a fresh one)')
     parser.add_argument('--checkpoint', default=None, help='Path to the model checkpoint to continue training off of')
 
     # Hyperparam args
@@ -75,21 +88,29 @@ def main():
     args = parser.parse_args()
 
     print(f"Base training data folder: {args.train_data}")
+    print(f"Pretrained model: {args.train_data}")
     print(f"Output file: {args.output}")
-
+    
     print(f"Number of epochs: {args.num_epochs}")
     print(f"Batch size: {args.batch_size}")
     print(f"Adam learning rate: {args.lr}")
 
+
     # Define model
     if args.checkpoint:
-        model = torch.load(args.checkpoint)
         print(f"Initializing model from weights of {args.checkpoint}")
 
+        model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
     else:
-        model = SimVP_Model(in_shape=(11,3,160,240), hid_S= 64, hid_T= 512, N_T=8, N_S=4, drop_path=0.1)
-        
-        print(f"Initializing model from random weights")
+        if (args.pretrained is None):
+            print(f"Initializing base model from random weights")
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S= 64, hid_T= 512, N_T=8, N_S=4, drop_path=0.1)
+        else:
+            print(f"Using pretrained base model {args.pretrained}")
+            model = torch.load(args.pretrained)
+
+        model.dec = Decoder(C_hid=64, C_out=49, N_S=4, spatio_kernel=3)
+
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
             model = torch.nn.DataParallel(model)
@@ -97,7 +118,8 @@ def main():
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
 
     # Load Data
-    dataset = UnlabeledDataset(args.train_data)
+    dataset = LabeledDataset(args.train_data)
+    val_dataset = ValidationDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
@@ -105,8 +127,12 @@ def main():
     os.remove(args.output)
 
     # Train!
-    criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=5e-4)
+    # Weight criterion so that empty class matters less!
+    weights = torch.ones(49)
+    weights[0] = 1 / 10 # This is just based on nothing lol
+
+    criterion = torch.nn.CrossEntropyLoss(weight=weights) 
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0.0001)
 
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 
@@ -117,17 +143,26 @@ def main():
         criterion = criterion.cuda()
         device = torch.device("cuda:0")
         print("Using cuda!")
+
     else:
         device = torch.device("cpu")
         print("Using CPU!")
 
+
     train_loss = []
+    best_iou = 0
+
     for i in iterator:
-        epoch_loss = train(train_dataloader, model, criterion, optimizer, device, i + 1)
+        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1)
         train_loss.append(epoch_loss)
 
-        # Save model every epoch, in case our job dies lol
-        save_model(model, args.output)
+        val_iou = validate(model, val_dataset, device=device)
+        print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
+
+        # Save model if it has the best iou
+        if val_iou > best_iou:
+            best_iou = val_iou
+            save_model(model, args.output)
 
     print(train_loss)
     save_model(model, args.output)
