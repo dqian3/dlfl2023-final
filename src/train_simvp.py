@@ -35,11 +35,8 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
 
         # Split video frames into first and second half
         x1, x2 = data[:, :SPLIT], data[:, SPLIT:]
-        # Transpose, since video resnet expects channels as first dim
-        x1 = x1.transpose(1, 2)
-        x2 = x2.transpose(1, 2)
     
-        output = model(input)
+        output = model(x1)
         loss = criterion(output, x2)
 
         total_loss += loss.item()
@@ -73,7 +70,6 @@ def main():
 
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
-    parser.add_argument('--original', action='store_true', help='Use original simsiam algorithm')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -109,8 +105,8 @@ def main():
     os.remove(args.output)
 
     # Train!
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3,weight_decay=5e-4)
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=5e-4)
 
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 

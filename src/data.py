@@ -40,7 +40,7 @@ class VideoDataset(Dataset):
         self.transform = transforms.Compose([
             # Skip some of the other transformations, since we are less worried about
             # scale and color variation
-            transforms.Resize((256, 256)),
+            # transforms.Resize((256, 256)),
             transforms.ToTensor(),  # convert PIL to Pytorch Tensor
             normalize,
         ])
