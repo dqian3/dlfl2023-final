@@ -4,6 +4,7 @@
 # Local imports
 from data import LabeledDataset, ValidationDataset
 from validate import validate
+from vidtoseg.parallel2dconv import Parallel2DConv
 from vidtoseg.simsiam import SimSiamGSTA
 from vidtoseg.unet import UNetVidToSeg
 
@@ -83,6 +84,7 @@ def main():
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
     parser.add_argument('--no_prediction', action='store_true', help='Skip prediction (i.e. predict 11th frame segmention, rather than 22nd)')
+    parser.add_argument('--use_model_predictor', action='store_true', help='Use models predictor, instead of initializing our own')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -101,18 +103,35 @@ def main():
 
     # Define model
     if args.checkpoint:
-        model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
         print(f"Initializing model from weights of {args.checkpoint}")
+
+        model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
     else:
+        model = UNetVidToSeg(encoder=base_model.encoder)
+
         if (args.pretrained is None):
             print(f"Initializing base model from random weights")
             base_model = SimSiamGSTA()
         else:
-            print(f"Using pretraine base model {args.pretrained}")
+            print(f"Using pretrained base model {args.pretrained}")
             base_model = torch.load(args.pretrained)
 
-        model = UNetVidToSeg(base_model, finetune=True)
-        print(f"Initializing model from random weights")
+        encoder = base_model.encoder
+        
+        if args.no_prediction:
+            print(f"Skipping prediction, using 1x1 conv for predictor")
+            predictor = None
+
+        elif args.use_model_predictor:
+            print(f"Using pretrained predictor")
+            predictor = base_model.predictor
+        else:
+            print(f"Using new isntance of predictor")
+
+            predictor = SimSiamGSTA().predictor # This is dumb but whatever
+
+        model = UNetVidToSeg(encoder=encoder, predictor=predictor)
+
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
             model = torch.nn.DataParallel(model)

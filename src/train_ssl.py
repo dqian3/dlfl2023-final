@@ -17,6 +17,8 @@ import os
 import argparse
 import time
 
+from vidtoseg.parallel2dconv import Parallel2DConv
+
 NUM_FRAMES = 22
 SPLIT = 11
 
@@ -94,7 +96,8 @@ def main():
         print(f"Initializing model from weights of {args.checkpoint}")
 
     else:
-        model = SimSiamGSTA()
+        model = SimSiamGSTA(Parallel2DConv, 256 * 11, 1024)
+
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
