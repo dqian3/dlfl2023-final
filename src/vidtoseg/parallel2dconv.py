@@ -34,7 +34,7 @@ class Parallel2DConv(nn.Module):
         spatial_kernel_size =  [1, kernel_size[0], kernel_size[1]]
         spatial_stride =  [1, stride[0], stride[1]]
         spatial_padding =  [0, padding[0], padding[1]]
-        spatial_dilation =  [0, dilation[0], dilation[1]]
+        spatial_dilation =  [1, dilation[0], dilation[1]]
 
 
         # the spatial conv is effectively a 2D conv due to the 
@@ -138,7 +138,7 @@ class Parallel2DResNet(nn.Module):
         super(Parallel2DResNet, self).__init__()
 
         # first conv, with stride 1x2x2 and kernel size 3x7x7
-        self.conv1 = Parallel2DConv(3, 32, kernel_size=5, stride=2, padding=5, dilation=1)
+        self.conv1 = Parallel2DConv(3, 32, kernel_size=5, stride=2, padding=4, dilation=2)
         # output of conv2 is same size as of conv1, no downsampling needed. kernel_size 3x3x3
         self.conv2 = Parallel2DResLayer(32, 32, 3, layer_sizes[0], block_type=block_type)
         # each of the final three layers doubles num_channels, while performing downsampling 

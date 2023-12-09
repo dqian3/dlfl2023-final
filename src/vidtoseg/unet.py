@@ -33,7 +33,7 @@ class Bridge(nn.Module):
     def __init__(self, channel_seq):
         super().__init__()
         self.bridge = nn.Sequential(
-            [
+            *[
                 ConvBlock(in_c, out_c, kernel_size=1, padding=0)
                 for in_c, out_c in zip(channel_seq, channel_seq[1:])
             ]
@@ -101,7 +101,7 @@ class UNetVidToSeg(nn.Module):
         down_blocks = list(encoder.children())
 
         bridges = [
-            Bridge(c * 11, c * 5, c * 1) # 11 5 1 is frames
+            Bridge([c * 11, c * 5, c * 1]) # 11 5 1 is frames
             for c in (32, 32, 64, 128)
         ]
 
@@ -109,20 +109,19 @@ class UNetVidToSeg(nn.Module):
         if (predictor):
             bridges.append(nn.Sequential(
                 predictor,
-                Bridge(256 * 11, 256 * 5, 256 * 1)
+                Bridge([256 * 11, 256 * 5, 256 * 1])
             ))
         else:
-            Bridge(256 * 11, 256 * 5, 256 * 1)
+            bridges.append(Bridge([256 * 11, 256 * 5, 256 * 1]))
 
-
-        self.down_blocks = nn.ModuleList(down_blocks[:-1])
+        self.down_blocks = nn.ModuleList(down_blocks)
         self.bridges = nn.ModuleList(bridges)
 
         up_blocks = []
 
-        up_blocks.append(UpBlock(512, 256))
         up_blocks.append(UpBlock(256, 128))
         up_blocks.append(UpBlock(128, 64))
+        up_blocks.append(UpBlock(96, 64, up_conv_in_channels=64, up_conv_out_channels=64))
         up_blocks.append(UpBlock(64, 64, up_conv_in_channels=64, up_conv_out_channels=32, upsampling_method="none"))
 
         self.up_blocks = nn.ModuleList(up_blocks)
@@ -145,12 +144,12 @@ class UNetVidToSeg(nn.Module):
             print(cross_x.shape)
         print(x.shape)
 
-        x = outputs[-1]
+        x = outputs.pop(-1)
 
         for i, block in enumerate(self.up_blocks):
-            # print(f"Up block {i}:")
-            # print(x.shape)
-            # print(outputs[-(i + 1)].shape)
+            print(f"Up block {i}:")
+            print(x.shape)
+            print(outputs[-(i + 1)].shape)
 
             x = block(x, outputs[-(i + 1)])
 
