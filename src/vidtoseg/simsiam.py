@@ -12,12 +12,13 @@ class SimSiamGSTA(nn.Module):
 
     Makes the predictor layer much different...
     """
-    def __init__(self, backbone_class, num_channels_backbone=256, dim=1024):
+    def __init__(self, backbone_class, num_channels_backbone=256, dim=2048):
         """
         dim: feature dimension (default: 1024)
         pred_dim: hidden dimension of the predictor (default: 512)
         """
         super(SimSiamGSTA, self).__init__()
+        self.dim = dim
 
         # create the backbone
         self.backbone = backbone_class()
@@ -25,15 +26,30 @@ class SimSiamGSTA(nn.Module):
         # build a gsta predictor
         self.predictor = MidMetaNet(num_channels_backbone, num_channels_backbone, 4)
 
+        # 1 by 1 conv across B x C to downsample for projector
+        self.downsample = nn.Sequential(
+            nn.Conv2d(256 * 11, 256 * 5, 1),
+            nn.BatchNorm2d(256 * 5),
+            nn.ReLU(), 
+            nn.Conv2d(256 * 5, 256, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(), 
+            nn.Conv2d(256, 128, 1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(), 
+            nn.Conv2d(128, 64, 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(), 
+            nn.Conv2d(64, 32, 1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(), 
+            nn.MaxPool2d(2)
+        )
 
-        # 1 by 1 conv across frames to downsample for projector
-        self.downsample = nn.Conv2d(1, 1, 1)
-        self.projector = nn.Sequential( nn.Linear(dim, dim, bias=False),
+
+        self.projector = nn.Sequential(nn.Linear(dim, dim, bias=False),
                                         nn.BatchNorm1d(dim),
                                         nn.ReLU(), 
-                                        nn.Linear(dim, dim, bias=False),
-                                        nn.BatchNorm1d(dim),
-                                        nn.ReLU(), # second layer
                                         nn.Linear(dim, dim, bias=False))
 
     def forward(self, x1, x2):
@@ -55,17 +71,17 @@ class SimSiamGSTA(nn.Module):
         p2 = self.predictor(x2)
         # N x 256 x 11 x 16 x 16
 
-        p1 = self.pool(p1).view((-1, self.dim))
-        p2 = self.pool(p2).view((-1, self.dim))
-        # N x 256 x 11 x 2 x 2 => N x 1024
+        B, C, T, H, W = p1.shape
+        p1 = self.downsample(p1.view((B, C * T, H, W))).view((-1, self.dim))
+        p2 = self.downsample(p2.view((B, C * T, H, W))).view((-1, self.dim))
+        # N x 256 x 11 x 2 x 2 => N x 2048
+
+        x1 = self.downsample(x1.view((B, C * T, H, W))).view((-1, self.dim))
+        x2 = self.downsample(x2.view((B, C * T, H, W))).view((-1, self.dim))
+        # N x 256 x 1 x 2 x 2 => N x 1024
 
         p1 = self.projector(p1)
         p2 = self.projector(p2)
-
-        x1 = self.pool(x1).view((-1, self.dim))
-        x2 = self.pool(x2).view((-1, self.dim))
-        # N x 256 x 1 x 2 x 2 => N x 1024
-
         z1 = self.projector(x1) 
         z2 = self.projector(x2)
 
