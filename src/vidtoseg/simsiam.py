@@ -24,26 +24,26 @@ class SimSiamGSTA(nn.Module):
         self.backbone = backbone_class()
 
         # build a gsta predictor
-        self.predictor = MidMetaNet(num_channels_backbone, num_channels_backbone, 4)
+        self.predictor = MidMetaNet(num_channels_backbone, num_channels_backbone, 3)
 
         # 1 by 1 conv across B x C to downsample for projector
         self.downsample = nn.Sequential(
-            nn.Conv2d(256 * 11, 256 * 5, 1),
+            nn.Conv2d(256 * 11, 256 * 5, 1, bias=False),
             nn.BatchNorm2d(256 * 5),
             nn.ReLU(), 
-            nn.Conv2d(256 * 5, 256, 1),
+            nn.Conv2d(256 * 5, 256, 1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(), 
-            nn.Conv2d(256, 128, 1),
+            nn.Conv2d(256, 128, 1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(), 
-            nn.Conv2d(128, 64, 1),
+            nn.Conv2d(128, 64, 1,bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(), 
-            nn.Conv2d(64, 32, 1),
+            nn.Conv2d(64, 32, 1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(), 
-            nn.MaxPool2d(2)
+            nn.AvgPool2d(2)
         )
 
 

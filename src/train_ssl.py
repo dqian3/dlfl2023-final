@@ -5,6 +5,7 @@
 from data import UnlabeledDataset
 from vidtoseg.simsiam import SimSiamGSTA
 from vidtoseg.r2plus1d import R2Plus1DNet 
+from vidtoseg.parallel2dconv import Parallel2DResNet
 from util import save_model
 
 # DL packages
@@ -17,7 +18,6 @@ import os
 import argparse
 import time
 
-from vidtoseg.parallel2dconv import Parallel2DConv
 
 NUM_FRAMES = 22
 SPLIT = 11
@@ -96,7 +96,7 @@ def main():
         print(f"Initializing model from weights of {args.checkpoint}")
 
     else:
-        model = SimSiamGSTA(Parallel2DConv, 256 * 11, 1024)
+        model = SimSiamGSTA(Parallel2DResNet, 256 * 11)
 
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
