@@ -24,7 +24,7 @@ NUM_FRAMES = 22
 SPLIT = 11
 
 
-def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, target_frames=(11, 21)):
+def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, target_frames=(11, 22)):
     total_loss = 0
 
     start_time = time.time()
@@ -44,7 +44,7 @@ def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, t
 
         # get mask by itself
         # Dim = (B x 160 x 240)
-        label_masks = labels[:,target_frames].long()
+        label_masks = labels[:,target_frames[0]:target_frames[1]].long()
 
         # Predict and backwards
         pred_masks = model(x)
@@ -59,6 +59,7 @@ def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, t
         if ((time.time() - start_time) // 60 > num_minutes):
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
+
 
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
@@ -97,7 +98,7 @@ def main():
     print(f"Batch size: {args.batch_size}")
     print(f"SGD learning rate: {args.lr}")
 
-    target_frames = (1, 11) if args.no_prediction else (11, 21)
+    target_frames = (0, 11) if args.no_prediction else (11, 22)
     print(f"Training segmentation for frames {target_frames}")
 
 

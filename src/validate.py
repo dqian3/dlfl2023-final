@@ -25,7 +25,7 @@ def validate(model, dataset, device="cpu", batch_size=2, target_frames=(11,22), 
             x = x.transpose(1, 2)
             masks = torch.argmax(model(x), dim=1)
     
-            total_iou += iou(masks, target[:,target_frames])
+            total_iou += iou(masks, target[:,target_frames[0]:target_frames[1]])
             num_batches += 1
         
     return total_iou / num_batches
