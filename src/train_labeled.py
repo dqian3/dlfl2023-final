@@ -151,7 +151,7 @@ def main():
     weights[0] = 1 / 50 # rough estimate of number of pixels that are background
 
     criterion = torch.nn.CrossEntropyLoss(weight=weights) 
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr) # TODO
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0.0001) # TODO
 
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 
