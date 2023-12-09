@@ -3,6 +3,7 @@ import torch.nn as nn
 from .gsta import MidMetaNet
 
 from .simsiam import SimSiamGSTA
+from torch.nn.modules.utils import _pair
 
 # Unet basic model structures.
 class ConvBlock(nn.Module):
@@ -12,8 +13,16 @@ class ConvBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, padding=1, kernel_size=3, stride=1, with_nonlinearity=True):
         super().__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, padding=padding, kernel_size=kernel_size, stride=stride)
-        self.bn = nn.BatchNorm2d(out_channels)
+        kernel_size = _pair(kernel_size)
+        stride = _pair(stride)
+        padding = _pair(padding)
+
+        spatial_kernel_size =  [1, kernel_size[0], kernel_size[1]]
+        spatial_stride =  [1, stride[0], stride[1]]
+        spatial_padding =  [0, padding[0], padding[1]]
+
+        self.conv = nn.Conv3d(in_channels, out_channels, padding=spatial_padding, kernel_size=spatial_kernel_size, stride=spatial_stride)
+        self.bn = nn.BatchNorm3d(out_channels)
         self.relu = nn.LeakyReLU()
         self.with_nonlinearity = with_nonlinearity
 
@@ -58,11 +67,11 @@ class UpBlock(nn.Module):
             up_conv_out_channels = out_channels
 
         if upsampling_method == "conv_transpose":
-            self.upsample = nn.ConvTranspose2d(up_conv_in_channels, up_conv_out_channels, kernel_size=2, stride=2)
+            self.upsample = nn.ConvTranspose3d(up_conv_in_channels, up_conv_out_channels, kernel_size=(1,2,2), stride=(1,2,2))
         elif upsampling_method == "bilinear":
             self.upsample = nn.Sequential(
-                nn.Upsample(mode='bilinear', scale_factor=2),
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
+                nn.Upsample(mode='bilinear', scale_factor=(1, 2, 2)),
+                nn.Conv3d(in_channels, out_channels, kernel_size=1, stride=1)
             )
         elif upsampling_method == "none":
             self.upsample = ConvBlock(up_conv_in_channels, up_conv_out_channels)
@@ -101,7 +110,7 @@ class UNetVidToSeg(nn.Module):
         down_blocks = list(encoder.children())
 
         bridges = [
-            Bridge([c * 11, c * 5, c * 1]) # 11 5 1 is frames
+            Bridge([c, c]) # 11 5 1 is frames
             for c in (32, 32, 64, 128)
         ]
 
@@ -109,10 +118,10 @@ class UNetVidToSeg(nn.Module):
         if (predictor):
             bridges.append(nn.Sequential(
                 predictor,
-                Bridge([256 * 11, 256 * 5, 256 * 1])
+                Bridge([256, 256])
             ))
         else:
-            bridges.append(Bridge([256 * 11, 256 * 5, 256 * 1]))
+            bridges.append(Bridge([256, 256]))
 
         self.down_blocks = nn.ModuleList(down_blocks)
         self.bridges = nn.ModuleList(bridges)
@@ -126,8 +135,7 @@ class UNetVidToSeg(nn.Module):
 
         self.up_blocks = nn.ModuleList(up_blocks)
 
-        self.out = nn.Conv2d(64, n_classes, kernel_size=1, stride=1)
-        self.upsample = nn.UpsamplingBilinear2d(size=(160, 240))
+        self.out = nn.Conv3d(64, n_classes, kernel_size=1, stride=1)
 
     def forward(self, x):
 
@@ -136,7 +144,8 @@ class UNetVidToSeg(nn.Module):
             x = block(x)
             if i < len(self.down_blocks):
                 B, C, T, H, W = x.shape
-                cross_x = self.bridges[i](x.view(B, C * T, H, W))
+                cross_x = self.bridges[i](x.view(B, C, T, H, W))
+
                 outputs.append(cross_x)
 
 
@@ -154,6 +163,6 @@ class UNetVidToSeg(nn.Module):
             x = block(x, outputs[-(i + 1)])
 
         x = self.out(x)
-        x = self.upsample(x)
+        x = nn.functional.interpolate(x, size=(11, 160, 240))
 
         return x

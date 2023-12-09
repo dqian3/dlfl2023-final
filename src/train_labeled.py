@@ -24,7 +24,7 @@ NUM_FRAMES = 22
 SPLIT = 11
 
 
-def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, target_frame=21):
+def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, target_frames=(11, 21)):
     total_loss = 0
 
     start_time = time.time()
@@ -44,7 +44,7 @@ def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, t
 
         # get mask by itself
         # Dim = (B x 160 x 240)
-        label_masks = labels[:,target_frame,:,:].long()
+        label_masks = labels[:,target_frames].long()
 
         # Predict and backwards
         pred_masks = model(x)
@@ -97,8 +97,8 @@ def main():
     print(f"Batch size: {args.batch_size}")
     print(f"SGD learning rate: {args.lr}")
 
-    target_frame = 10 if args.no_prediction else 21
-    print(f"Training segmentation for frame {target_frame}")
+    target_frames = (1, 11) if args.no_prediction else (11, 21)
+    print(f"Training segmentation for frames {target_frames}")
 
 
     # Define model
@@ -172,10 +172,10 @@ def main():
     best_iou = 0
 
     for i in iterator:
-        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1, target_frame=target_frame)
+        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1, target_frames=target_frames)
         train_loss.append(epoch_loss)
 
-        val_iou = validate(model, val_dataset, device=device, target_frame=target_frame)
+        val_iou = validate(model, val_dataset, device=device, target_frames=target_frames)
         print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
 
         # Save model if it has the best iou
