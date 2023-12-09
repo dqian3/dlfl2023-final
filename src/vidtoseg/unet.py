@@ -140,16 +140,16 @@ class UNetVidToSeg(nn.Module):
                 outputs.append(cross_x)
 
 
-        for cross_x in outputs:
-            print(cross_x.shape)
-        print(x.shape)
+        # for cross_x in outputs:
+        #     print(cross_x.shape)
+        # print(x.shape)
 
         x = outputs.pop(-1)
 
         for i, block in enumerate(self.up_blocks):
-            print(f"Up block {i}:")
-            print(x.shape)
-            print(outputs[-(i + 1)].shape)
+            # print(f"Up block {i}:")
+            # print(x.shape)
+            # print(outputs[-(i + 1)].shape)
 
             x = block(x, outputs[-(i + 1)])
 

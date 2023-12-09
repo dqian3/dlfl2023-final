@@ -4,7 +4,7 @@
 # Local imports
 from data import LabeledDataset, ValidationDataset
 from validate import validate
-from vidtoseg.parallel2dconv import Parallel2DConv
+from vidtoseg.parallel2dconv import Parallel2DResNet
 from vidtoseg.simsiam import SimSiamGSTA
 from vidtoseg.unet import UNetVidToSeg
 
@@ -107,16 +107,14 @@ def main():
 
         model = torch.load(args.checkpoint, map_location=torch.device('cpu'))
     else:
-        model = UNetVidToSeg(encoder=base_model.encoder)
-
         if (args.pretrained is None):
             print(f"Initializing base model from random weights")
-            base_model = SimSiamGSTA()
+            base_model = SimSiamGSTA(Parallel2DResNet)
         else:
             print(f"Using pretrained base model {args.pretrained}")
             base_model = torch.load(args.pretrained)
 
-        encoder = base_model.encoder
+        encoder = base_model.backbone
         
         if args.no_prediction:
             print(f"Skipping prediction, using 1x1 conv for predictor")
@@ -128,7 +126,7 @@ def main():
         else:
             print(f"Using new isntance of predictor")
 
-            predictor = SimSiamGSTA().predictor # This is dumb but whatever
+            predictor = SimSiamGSTA(Parallel2DResNet).predictor # This is dumb but whatever
 
         model = UNetVidToSeg(encoder=encoder, predictor=predictor)
 
