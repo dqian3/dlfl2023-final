@@ -86,6 +86,7 @@ def main():
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
     parser.add_argument('--no_prediction', action='store_true', help='Skip prediction (i.e. predict 11th frame segmention, rather than 22nd)')
     parser.add_argument('--use_model_predictor', action='store_true', help='Use models predictor, instead of initializing our own')
+    parser.add_argument('--gsta', action='store_true', help='Use GSTA')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -125,9 +126,11 @@ def main():
             print(f"Using pretrained predictor")
             predictor = base_model.predictor
         else:
-            print(f"Using new isntance of predictor")
-
-            predictor = SimSiamGSTA(Parallel2DResNet, 256 * 11).predictor # This is dumb but whatever
+            if (args.gsta):
+                print(f"Using new instance of GSTA predictor")
+                predictor = SimSiamGSTA(Parallel2DResNet, 256 * 11).predictor # This is dumb but whatever
+            else:
+                predictor = None
 
         model = UNetVidToSeg(encoder=encoder, predictor=predictor)
 

@@ -138,7 +138,7 @@ class Parallel2DResNet(nn.Module):
         super(Parallel2DResNet, self).__init__()
 
         # first conv, with stride 1x2x2 and kernel size 3x7x7
-        self.conv1 = Parallel2DConv(3, 32, kernel_size=5, stride=2, padding=4, dilation=2)
+        self.conv1 = Parallel2DConv(3, 32, kernel_size=7, stride=2, padding=3)
         # output of conv2 is same size as of conv1, no downsampling needed. kernel_size 3x3x3
         self.conv2 = Parallel2DResLayer(32, 32, 3, layer_sizes[0], block_type=block_type)
         # each of the final three layers doubles num_channels, while performing downsampling 
