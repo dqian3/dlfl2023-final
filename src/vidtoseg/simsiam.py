@@ -12,7 +12,7 @@ class SimSiamGSTA(nn.Module):
 
     Makes the predictor layer much different...
     """
-    def __init__(self, backbone_class, num_channels_backbone=256, dim=2048):
+    def __init__(self, backbone_class, num_channels_backbone=256 * 11, dim=2048):
         """
         dim: feature dimension (default: 1024)
         pred_dim: hidden dimension of the predictor (default: 512)

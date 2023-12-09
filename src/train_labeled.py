@@ -110,7 +110,7 @@ def main():
     else:
         if (args.pretrained is None):
             print(f"Initializing base model from random weights")
-            base_model = SimSiamGSTA(Parallel2DResNet)
+            base_model = SimSiamGSTA(Parallel2DResNet, 256 * 11)
         else:
             print(f"Using pretrained base model {args.pretrained}")
             base_model = torch.load(args.pretrained)
@@ -127,7 +127,7 @@ def main():
         else:
             print(f"Using new isntance of predictor")
 
-            predictor = SimSiamGSTA(Parallel2DResNet).predictor # This is dumb but whatever
+            predictor = SimSiamGSTA(Parallel2DResNet, 256 * 11).predictor # This is dumb but whatever
 
         model = UNetVidToSeg(encoder=encoder, predictor=predictor)
 
