@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from vidtoseg.gsta import MidMetaNet
+from .gsta import MidMetaNet
 
-from vidtoseg.simsiam import SimSiamGSTA
+from .simsiam import SimSiamGSTA
 
 # Unet basic model structures.
 class ConvBlock(nn.Module):
@@ -30,11 +30,13 @@ class Bridge(nn.Module):
     This is the middle layer of the UNet which just consists of some 1 by 1 conv (i.e. FF across channels)
     """
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, channel_seq):
         super().__init__()
         self.bridge = nn.Sequential(
-            ConvBlock(in_channels, out_channels),
-            ConvBlock(out_channels, out_channels)
+            [
+                ConvBlock(in_c, out_c, kernel_size=1, padding=0)
+                for in_c, out_c in zip(channel_seq, channel_seq[1:])
+            ]
         )
 
     def forward(self, x):
@@ -82,87 +84,68 @@ class UpBlock(nn.Module):
         return x
     
 class UNetVidToSeg(nn.Module):
-    def __init__(self, model: SimSiamGSTA, n_classes=49, finetune=True):
+    def __init__(self, encoder, predictor=None, n_classes=49):
         '''
-        model is trained SimSiam for r2plus1d
+        model is trained SimSiam for Parallel2DResNet
         
         Down block outputs:
         torch.Size([1, 32, 11, 128, 128])
         torch.Size([1, 32, 11, 128, 128])
-        torch.Size([1, 64, 6, 64, 64])
-        torch.Size([1, 128, 3, 32, 32])
-        # torch.Size([1, 256, 2, 16, 16])
+        torch.Size([1, 64, 11, 64, 64])
+        torch.Size([1, 128, 11, 32, 32])
+        torch.Size([1, 256, 11, 16, 16])
 
-        Everything except first layer is pooled to frames = 2 and vid -> channel cross connections:
-        torch.Size([1, 160, 256, 256])
-        torch.Size([1, 160, 128, 128])
-        torch.Size([1, 64, 128, 128])
-        torch.Size([1, 128, 64, 64])
-        torch.Size([1, 256, 32, 32])
-        # torch.Size([1, 512, 16, 16])
         '''
         super().__init__()
 
-        r2plus1d = model.backbone
-        down_blocks = list(r2plus1d.children())
+        down_blocks = list(encoder.children())
 
-        # Pool each down blocks ouput across time, so that we don't have too many channels
-        # in the cross connection. Skip last down block, since that is the "bridge"
-        # down_t_pools = [
-        #     torch.nn.AdaptiveAvgPool3d((5, None, None)),
-        #     torch.nn.AdaptiveAvgPool3d((5, None, None)),
-        #     torch.nn.AdaptiveAvgPool3d((2, None, None)),
-        #     torch.nn.AdaptiveAvgPool3d((2, None, None)),
-        #     torch.nn.AdaptiveAvgPool3d((2, None, None)),
-        # ]
+        bridges = [
+            Bridge(c * 11, c * 5, c * 1) # 11 5 1 is frames
+            for c in (32, 32, 64, 128)
+        ]
+
+
+        if (predictor):
+            bridges.append(nn.Sequential(
+                predictor,
+                Bridge(256 * 11, 256 * 5, 256 * 1)
+            ))
+        else:
+            Bridge(256 * 11, 256 * 5, 256 * 1)
+
 
         self.down_blocks = nn.ModuleList(down_blocks[:-1])
-        # self.down_t_pools = nn.ModuleList(down_t_pools)
+        self.bridges = nn.ModuleList(bridges)
 
-        self.bridge = MidMetaNet(3 * 128, 128, 4)
-        
         up_blocks = []
 
-        # up_blocks.append(UpBlock(512, 256))
-        up_blocks.append(UpBlock(192, 128, up_conv_in_channels=384, up_conv_out_channels=128))
-        up_blocks.append(UpBlock(96, 64, up_conv_in_channels=128, up_conv_out_channels=64))
+        up_blocks.append(UpBlock(512, 256))
+        up_blocks.append(UpBlock(256, 128))
+        up_blocks.append(UpBlock(128, 64))
         up_blocks.append(UpBlock(64, 64, up_conv_in_channels=64, up_conv_out_channels=32, upsampling_method="none"))
 
         self.up_blocks = nn.ModuleList(up_blocks)
-        self.out = nn.Conv2d(64, n_classes, kernel_size=1, stride=1)
 
+        self.out = nn.Conv2d(64, n_classes, kernel_size=1, stride=1)
         self.upsample = nn.UpsamplingBilinear2d(size=(160, 240))
 
     def forward(self, x):
-        # TODO adjust finetuning behavior
 
         outputs = []
         for i, block in enumerate(self.down_blocks):
             x = block(x)
-
-            # print(len(self.down_blocks))
-            # print(i)
-
-            if i < len(self.down_blocks) - 1:
-                # avg pool the cross connections
-                # cross_x = x
-                # cross_x = self.down_t_pools[i](x)
-                # B, C, T, H, W = cross_x.shape # pool cross sections
-                # cross_x = cross_x.view(B, C * T, H, W)
-
-                # Instead of pooling, just take the last frame and its channels for some spatial info
-                cross_x = x[:,:,-1]
+            if i < len(self.down_blocks):
+                B, C, T, H, W = x.shape
+                cross_x = self.bridges[i](x.view(B, C * T, H, W))
                 outputs.append(cross_x)
 
 
-        # for cross_x in outputs:
-        #     print(cross_x.shape)
-        # print(x.shape)
+        for cross_x in outputs:
+            print(cross_x.shape)
+        print(x.shape)
 
-        x = self.bridge(x)
-        B, C, T, H, W = x.shape
-        x = x.view(B, C * T, H, W)
-
+        x = outputs[-1]
 
         for i, block in enumerate(self.up_blocks):
             # print(f"Up block {i}:")
