@@ -11,7 +11,7 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
     else:
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 
-    total_iou = 0
+    total_iou = torch.zeros(49)
     num_batches = 0
 
     with torch.no_grad():
@@ -29,4 +29,4 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
             total_iou += torch.mean(iou(masks, target[:,11:]))
             num_batches += 1
         
-    return total_iou / num_batches
+    return torch.mean(total_iou) / num_batches
