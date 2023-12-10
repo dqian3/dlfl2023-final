@@ -11,9 +11,10 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
     else:
         data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 
-    total_iou = torch.zeros(49)
+    total_iou = torch.zeros(49).to(device)
     num_batches = 0
 
+    model.eval()
     with torch.no_grad():
         for batch in data_loader:
             x, target = batch   
