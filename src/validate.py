@@ -21,8 +21,10 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
             target = target.to(device)
 
             x = x[:, :11]
-            # Transpose, since video resnet expects channels as first dim
-            masks = torch.argmax(model(x), dim=1)
+
+            # simvp output is B x T x C x H x W
+            # change to B x C x T x H x W for Jaccard
+            masks = torch.argmax(model(x).transpose(1, 2), dim=1)
     
             total_iou += iou(masks, target[:,11:])
             num_batches += 1

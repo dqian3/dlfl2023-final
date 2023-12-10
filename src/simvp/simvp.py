@@ -19,6 +19,9 @@ class SimVP_Model(nn.Module):
             mlp_ratio=mlp_ratio, drop=drop, drop_path=drop_path)
     
      
+
+        self.in_shape = in_shape
+        self.out_shape = in_shape
         
     def forward(self, x_raw, **kwargs):
         B, T, C, H, W = x_raw.shape
@@ -33,6 +36,6 @@ class SimVP_Model(nn.Module):
 
         Y = self.dec(hid, skip)
 
-        Y = Y.reshape(B, T, C, H, W)
+        Y = Y.reshape(B, *self.out_shape)
 
         return Y

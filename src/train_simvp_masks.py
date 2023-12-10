@@ -39,14 +39,13 @@ def train_segmentation(dataloader, model, criterion, optimizer, device, epoch):
 
         # Split video frames into first half
         x = data[:, :SPLIT]
-        # Transpose, since video resnet expects channels as first dim
 
         # get mask by itself
         # Dim = (B x 160 x 240)
-        label_masks = labels[:,11:].long()
+        label_masks = labels[:,SPLIT:].long()
 
         # Predict and backwards
-        pred_masks = model(x)
+        pred_masks = model(x).transpose(1, 2) # Switch channel and time
 
         loss = criterion(pred_masks, label_masks)
 
@@ -58,7 +57,7 @@ def train_segmentation(dataloader, model, criterion, optimizer, device, epoch):
         if ((time.time() - start_time) // 60 > num_minutes):
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
-
+        break
 
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
@@ -110,6 +109,7 @@ def main():
             model = torch.load(args.pretrained)
 
         model.dec = Decoder(C_hid=64, C_out=49, N_S=4, spatio_kernel=3)
+        model.out_shape = (11,49,160,240)
 
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
