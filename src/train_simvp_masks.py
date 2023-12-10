@@ -103,12 +103,12 @@ def main():
     else:
         if (args.pretrained is None):
             print(f"Initializing base model from random weights")
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S= 64, hid_T= 512, N_T=8, N_S=4, drop_path=0.1)
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=256, hid_T=512, N_T=8, N_S=8, drop_path=0.1)
         else:
             print(f"Using pretrained base model {args.pretrained}")
             model = torch.load(args.pretrained)
 
-        model.dec = Decoder(C_hid=64, C_out=49, N_S=4, spatio_kernel=3)
+        model.dec = Decoder(C_hid=256, C_out=49, N_S=4, spatio_kernel=3)
         model.out_shape = (11,49,160,240)
 
         if torch.cuda.device_count() > 1:
