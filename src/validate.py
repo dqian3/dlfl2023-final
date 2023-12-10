@@ -3,7 +3,7 @@ from torchmetrics import JaccardIndex
 
 # Sample None is whole dataset, int determines size of sample
 def validate(model, dataset, device="cpu", batch_size=2, sample=None):
-    iou = JaccardIndex(task="multiclass", num_classes=49).to(device)
+    iou = JaccardIndex(task="multiclass", num_classes=49, average="none").to(device)
 
     if (sample):
         sampler = torch.utils.data.RandomSampler(dataset, num_samples=sample)
@@ -26,7 +26,7 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
             # change to B x C x T x H x W for Jaccard
             masks = torch.argmax(model(x).transpose(1, 2), dim=1)
     
-            total_iou += iou(masks, target[:,11:])
+            total_iou += torch.mean(iou(masks, target[:,11:]))
             num_batches += 1
         
     return total_iou / num_batches

@@ -129,7 +129,7 @@ def main():
     # Train!
     # Weight criterion so that empty class matters less!
     weights = torch.ones(49)
-    weights[0] = 1 / 10 # This is just based on nothing lol
+    weights[0] = 1 / 50 # This is just based on nothing lol
 
     criterion = torch.nn.CrossEntropyLoss(weight=weights) 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=0.0001)
