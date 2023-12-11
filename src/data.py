@@ -36,6 +36,7 @@ class VideoDataset(Dataset):
         self.has_label = has_label
 
         self.num_frames = num_frames
+        self.root_label_dir = label_dir
 
         self.transform = transforms.Compose([
             # Skip some of the other transformations, since we are less worried about
@@ -51,8 +52,8 @@ class VideoDataset(Dataset):
     def __getitem__(self, i):
         img_dir = os.path.join(self.root_dir, f"video_{self.idx_offset + i}")
 
-        if (label_dir):
-            label_dir = os.path.join(self.label_dir, f"video_{self.idx_offset + i}")
+        if (self.label_dir):
+            label_dir = os.path.join(self.root_label_dir, f"video_{self.idx_offset + i}")
         else:
             label_dir = img_dir
 
