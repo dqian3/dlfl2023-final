@@ -33,7 +33,8 @@ def predict_segmentation(dataloader, model, device):
             data = data.to(device)
 
             # Split video frames into first half
-            masks.append(model(data))
+            mask = torch.argmax(model(data).transpose(1, 2), dim=1)
+            masks.append(mask[:,11])
 
     print(f"Took {(time.time() - start_time):2f} s")
     result = torch.stack(masks)
@@ -72,7 +73,7 @@ def main():
     val_dataset = ValidationDataset(args.data)
     hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
 
-    iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size, sample=100)
+    iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size)
     # result_hidden = predict_segmentation(val_dataloader, model, device)
 
     torch.save(result_val, "val.tensor")
