@@ -15,13 +15,13 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
 
     if (sample):
         sampler = torch.utils.data.RandomSampler(dataset, num_samples=sample)
-        data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2, sampler=sampler)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2, sampler=sampler)
     else:
-        data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 
     masks = []
     labels = []
-    for batch in data_loader:
+    for (i, batch) in enumerate(dataloader):
         data, target = batch
         data = data.to(device)
         target = target.to(device)
@@ -29,8 +29,11 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
         data = data[:,:11]
 
         # Split video frames into first half
-        masks.append(model(data).detach())
-        labels.append(target)
+        masks.append(model(data).detach()[:,11])
+        labels.append(target[:,21])
+        
+        if (i % 100 == 99):
+            print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
 
         del data
 
