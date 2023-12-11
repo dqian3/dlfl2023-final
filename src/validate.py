@@ -5,7 +5,7 @@ import time
 
 
 # Sample None is whole dataset, int determines size of sample
-@torch.no_grad
+@torch.no_grad()
 def validate(model, dataset, device="cpu", batch_size=2, sample=None):
    
     start_time = time.time()
@@ -29,7 +29,7 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
         data = data[:,:11]
 
         # Split video frames into first half
-        masks.append(model(data))
+        masks.append(model(data).detach())
         labels.append(target)
 
     masks = torch.stack(masks)
