@@ -38,12 +38,14 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         for target_frame in range(11, 22):
             x1 = data[:, target_frame-11:target_frame]
             x2 = data[:, target_frame]
-            output = model(x1).squeeze(1) # squueze last frame dim away
+            output = model(x1).squeeze(1) # squeeze last frame dim away
             
             if (loss is None):
                 loss = criterion(output, x2)
             else:
                 loss += criterion(output, x2)
+
+            del output
 
         total_loss += loss.item() / 11
         optimizer.zero_grad()
@@ -118,7 +120,7 @@ def main():
             raise NotImplementedError()
             # model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
         else:
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=64, hid_T=256, N_T=8, N_S=4, drop_path=0.1)
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=64, hid_T=128, N_T=6, N_S=4, drop_path=0.1)
 
             model.out_shape = (1, 3, 160, 240)
             model.dec = Decoder(11 * model.hid_S, 3, 4, 3)

@@ -42,21 +42,22 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
 
             del data
 
-        frames = torch.stack(frames) # 1k x 3 x 160 x 240
+        frames = torch.cat(frames) # 1k x 3 x 160 x 240
 
         if (has_labels):
-            labels = torch.stack(labels) # 1k x 160 x 240
+            labels = torch.cat(labels) # 1k x 160 x 240
 
         return frames, labels
 
 
-def predict_resnet50(model, frames, device="cpu", batch_size=2):
+def predict_resnet50(model, frames, device="cpu"):
     start_time = time.time()
     print(f"Predicting Resnet50 results")
 
     dataset = torch.utils.data.TensorDataset(frames)
     masks = []
 
+    model.eval()
     with torch.no_grad():
         for (i, frame) in enumerate(dataset):
             frame, _ = frame
@@ -70,7 +71,6 @@ def predict_resnet50(model, frames, device="cpu", batch_size=2):
             del data
 
         masks = torch.stack(masks)
-
         return masks
     
 
@@ -125,9 +125,6 @@ def main():
 
     iou = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
     print(f"IOU: {iou(val_masks, val_labels)}")
-
-    # torch.save(result_val, "val.tensor")
-    # torch.save(result_hidden, "hidden.tensor")
 
 
 
