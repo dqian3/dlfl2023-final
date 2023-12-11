@@ -2,13 +2,8 @@
 # coding: utf-8
 
 # Local imports
-from data import LabeledDataset, ValidationDataset
-from validate import validate
-from vidtoseg.parallel2dconv import Parallel2DResNet
-from vidtoseg.simsiam import SimSiamGSTA
-from vidtoseg.unet import UNetVidToSeg
-
-from util import save_model
+from data import ValidationDataset
+from unet.unet import unet
 
 # DL packages
 import torch
