@@ -5,7 +5,7 @@ import time
 
 
 # Sample None is whole dataset, int determines size of sample
-def validate(model, dataset, device="cpu", batch_size=2, sample=None):
+def validate(model, dataset, device="cpu", batch_size=2, sample=None, channels_first=False):
    
     start_time = time.time()
     print(f"Validating with sample={sample}")
@@ -28,6 +28,9 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
             target = target.to(device)
 
             data = data[:,:11]
+            if channels_first:
+                data = data.transpose(1, 2)
+
 
             # Split video frames into first half
             mask = torch.argmax(model(data).transpose(1, 2), dim=1)

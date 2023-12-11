@@ -49,6 +49,8 @@ def main():
     parser.add_argument('--data', type=str, required=True, help='Path to the training data (labeled) folder')
     parser.add_argument('--model', default=None, help='Path to simvp mask model')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
+    parser.add_argument('--channels_first', action='store_true', help='Wheter model expects channel dimension before all spatio temporal dims')
+
 
     # Parsing arguments
     args = parser.parse_args()
@@ -73,7 +75,7 @@ def main():
     val_dataset = ValidationDataset(args.data)
     # hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
 
-    iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size)
+    iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size, channels_first=args.channels_first)
     # result_hidden = predict_segmentation(val_dataloader, model, device)
 
     print(f"IOU: {iou}")
