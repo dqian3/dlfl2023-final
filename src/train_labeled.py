@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Local imports
-from data import LabeledDataset, ValidationDataset
+from data import LabeledDataset, ValidationDataset, UnetLabeledDataset
 from validate import validate
 from vidtoseg.parallel2dconv import Parallel2DResNet
 from vidtoseg.simsiam import SimSiamGSTA
@@ -73,6 +73,7 @@ def main():
 
     # Data arguments
     parser.add_argument('--train_data', type=str, required=True, help='Path to the training data (labeled) folder')
+    parser.add_argument('--unet_labels', default=None, help='Path to the unet_labels (unlabeled data segmented by unet) folder')
     parser.add_argument('--output', type=str, default="final_model.pkl", help='Path to the output folder')
     parser.add_argument('--pretrained', default=None, help='Path to pretrained simsiam network (or start a fresh one)')
     parser.add_argument('--checkpoint', default=None, help='Path to the model checkpoint to continue training off of')
@@ -140,7 +141,13 @@ def main():
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
 
     # Load Data
-    dataset = LabeledDataset(args.train_data)
+    if args.unet_labels:
+        dataset = LabeledDataset(args.train_data)
+        unet_labeled_dataset = UnetLabeledDataset(args.train_data, args.unet_labels)
+        dataset = torch.utils.data.ConcatDataset([dataset, unet_labeled_dataset])
+    else:
+        dataset = LabeledDataset(args.train_data)   
+        
     val_dataset = ValidationDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 

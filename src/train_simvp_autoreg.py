@@ -54,11 +54,28 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
             num_minutes = (time.time() - start_time) // 60
             print(f"After {num_minutes} minutes, finished training batch {i + 1} of {len(dataloader)}")
 
+        if i == len(dataloader) - 1:
+            # Split into first and second half
+            x1, x2 = data[:,:11], data[:,11:]
+            print(f"Autoregressive loss on last batch: {auto_regressive_loss(model, x1, x2)}")
 
     print(f"Loss at epoch {epoch} : {total_loss / len(dataloader)}")
     print(f"Took {(time.time() - start_time):2f} s")
 
     return total_loss / len(dataloader)
+
+
+
+def auto_regressive_loss(model, data, target):
+    criterion = torch.nn.MSELoss()
+    with torch.no_grad():
+
+        for i in range(11):
+            output = model(data[:,i:])
+            data = torch.cat((data, output), dim=1)
+
+        return criterion(data[:,11:], target)
+
 
 
 def main():
@@ -115,6 +132,7 @@ def main():
 
     # Load Data
     dataset = UnlabeledDataset(args.train_data)
+    val_dataset = UnlabeledDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     # Try saving model and deleting, so we don't train an epoch before failing
