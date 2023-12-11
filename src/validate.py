@@ -39,8 +39,8 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
 
             del data
 
-        masks = torch.stack(masks)
-        labels = torch.stack(labels)
+        masks = torch.stack(masks) # 1k x 160 x 240
+        labels = torch.stack(labels) # 1k x 160 x 240
 
         print(f"Took {(time.time() - start_time):2f} s")
 

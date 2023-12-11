@@ -47,7 +47,7 @@ def main():
 
     # Data arguments
     parser.add_argument('--data', type=str, required=True, help='Path to the training data (labeled) folder')
-    parser.add_argument('--model', default=None, help='Path to pretrained simsiam network (or start a fresh one)')
+    parser.add_argument('--model', default=None, help='Path to simvp mask model')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
 
     # Parsing arguments
@@ -69,9 +69,9 @@ def main():
         print("Using CPU!")
 
     # Load Data
-    hidden_dataset = LabeledDataset(args.data)
+    # hidden_dataset = LabeledDataset(args.data)
     val_dataset = ValidationDataset(args.data)
-    hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
+    # hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
 
     iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size)
     # result_hidden = predict_segmentation(val_dataloader, model, device)
