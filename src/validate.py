@@ -14,20 +14,21 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
     total_iou = 0
     num_batches = 0
 
-    model.eval()
-    with torch.no_grad():
-        for batch in data_loader:
-            x, target = batch   
-            x = x.to(device)
-            target = target.to(device)
+    masks = []
+    labels = []
+    for batch in data_loader:
+        data, target = batch
+        data = data.to(device)
+        target = target.to(device)
 
-            x = x[:, :11]
+        # Split video frames into first half
+        masks.append(model(data))
+        labels.append(target)
 
-            # simvp output is B x T x C x H x W
-            # change to B x C x T x H x W for Jaccard
-            masks = torch.argmax(model(x).transpose(1, 2), dim=1)
-    
-            total_iou += iou(masks, target[:,11:])
-            num_batches += 1
+    masks = torch.stack(masks)
+    print(masks.shape)
+    labels = torch.stack(labels)
+    print(labels.shape)
+
         
     return total_iou / num_batches

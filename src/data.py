@@ -78,4 +78,5 @@ def UnlabeledDataset(base_dir):
 def ValidationDataset(base_dir):
     return VideoDataset(os.path.join(base_dir, "val"), 1000, idx_offset=1000)
 
-
+def HiddenDataset(base_dir):
+    return VideoDataset(os.path.join(base_dir, "hidden"), 2000, idx_offset=15000, is_hidden=True)
