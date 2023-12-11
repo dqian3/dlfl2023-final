@@ -121,7 +121,7 @@ def main():
         print("Using CPU!")
 
 
-    val_masks = predict_resnet50(model, val_frames, device, args.batch_size)
+    val_masks = predict_resnet50(model, val_frames, device)
 
     iou = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
     print(f"IOU: {iou(val_masks, val_labels)}")
