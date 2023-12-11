@@ -107,18 +107,27 @@ def main():
             print(f"Initializing base model from random weights")
 
             if args.size == "large":
-                model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=512, N_T=10, N_S=8, drop_path=0.1)
+                hid_S = 128
+                hid_T = 512
+                N_T = 10
+                N_S = 8
             elif args.size == "med":
-                model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=256, N_T=8, N_S=6, drop_path=0.1)
+                hid_S = 128
+                hid_T = 256
+                N_T = 8
+                N_S = 6
             else:
-                model = SimVP_Model(in_shape=(11,3,160,240), hid_S= 64, hid_T= 512, N_T=8, N_S=4, drop_path=0.1)
+                hid_S = 64
+                hid_T = 512
+                N_T = 8
+                N_S = 4
 
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=hid_S, hid_T=hid_T, N_T=N_T, N_S=N_S, drop_path=0.1)
         else:
             print(f"Using pretrained base model {args.pretrained}")
             model = torch.load(args.pretrained)
 
-
-        model.dec = Decoder(C_hid=128 if (args.size == "med" or args.size == "large") else 64, C_out=49, N_S=8, spatio_kernel=3)
+        model.dec = Decoder(C_hid=hid_S, C_out=49, N_S=N_S, spatio_kernel=3)
         model.out_shape = (11,49,160,240)
 
         if torch.cuda.device_count() > 1:
