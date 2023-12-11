@@ -17,7 +17,6 @@ import time
 
 from vidtoseg.simsiam_orig import SimSiam
 
-
 NUM_FRAMES = 22
 SPLIT = 11
 
@@ -33,11 +32,12 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
 
         data = data.to(device)
 
-        # Split video frames into first and second half
-        x1, x2 = data[:, :SPLIT], data[:, SPLIT:]
-    
-        output = model(x1)
-        loss = criterion(output, x2)
+        # Split video frames into multiple sequences of 11 and then 1 frame
+        for target_frame in range(11, 22):
+            x1 = data[:, target_frame-11:target_frame]
+            x2 = data[:, target_frame]
+            output = model(x1)
+            loss += criterion(output, x2)
 
         total_loss += loss.item()
         optimizer.zero_grad()
@@ -95,6 +95,8 @@ def main():
         else:
             model = SimVP_Model(in_shape=(11,3,160,240), hid_S= 64, hid_T= 512, N_T=8, N_S=4, drop_path=0.1)
 
+        model.out_shape = (3, 160, 240)
+
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
@@ -112,7 +114,7 @@ def main():
 
     # Train!
     criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=5e-4)
 
     iterator = range(args.num_epochs)
     if (args.use_tqdm): 
