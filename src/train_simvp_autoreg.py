@@ -36,7 +36,7 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
         for target_frame in range(11, 22):
             x1 = data[:, target_frame-11:target_frame]
             x2 = data[:, target_frame]
-            output = model(x1)
+            output = model(x1).squeeze(1) # squueze last frame dim away
             loss += criterion(output, x2)
 
         loss /= 11
@@ -97,10 +97,9 @@ def main():
             raise NotImplementedError()
             # model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
         else:
-            # hidden channels are divisible by 3
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=120, hid_T=510, N_T=8, N_S=4, drop_path=0.1)
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=64, hid_T=512, N_T=8, N_S=4, drop_path=0.1)
 
-        model.out_shape = (3, 160, 240)
+        model.out_shape = (1, 3, 160, 240)
 
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
