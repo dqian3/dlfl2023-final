@@ -26,13 +26,14 @@ def predict_segmentation(dataloader, model, device):
 
     model.eval()
 
-    masks = []
-    for batch in dataloader:
-        data = batch
-        data = data.to(device)
+    with torch.no_grad():
+        masks = []
+        for batch in dataloader:
+            data = batch
+            data = data.to(device)
 
-        # Split video frames into first half
-        masks.append(model(data))
+            # Split video frames into first half
+            masks.append(model(data))
 
     print(f"Took {(time.time() - start_time):2f} s")
     result = torch.stack(masks)
