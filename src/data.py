@@ -52,7 +52,7 @@ class VideoDataset(Dataset):
     def __getitem__(self, i):
         img_dir = os.path.join(self.root_dir, f"video_{self.idx_offset + i}")
 
-        if (self.label_dir):
+        if (self.root_label_dir):
             label_dir = os.path.join(self.root_label_dir, f"video_{self.idx_offset + i}")
         else:
             label_dir = img_dir
