@@ -50,19 +50,20 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
         return frames, labels
 
 
-def predict_resnet50(model, frames, device="cpu"):
+def predict_resnet50(model, frames, device="cpu", batch_size=2):
     start_time = time.time()
     print(f"Predicting Resnet50 results")
 
     dataset = torch.utils.data.TensorDataset(frames)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
     masks = []
 
     model.eval()
     with torch.no_grad():
-        for (i, frame) in enumerate(dataset):
-            (frame,) = frame
-            frame = frame.to(device)
-            mask = model(frame.unsqueeze(0))
+        for (i, batch) in enumerate(dataloader):
+            (frame,) = batch
+            batch = batch.to(device)
+            mask = model(batch)
             masks.append(mask.to("cpu"))
             
             if (i + 1) % 100 == 0:
@@ -121,7 +122,7 @@ def main():
         print("Using CPU!")
 
 
-    val_masks = predict_resnet50(model, val_frames, device)
+    val_masks = predict_resnet50(model, val_frames, device, batch_size=args.batch_size)
 
     iou = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
     print(f"IOU: {iou(val_masks, val_labels)}")
