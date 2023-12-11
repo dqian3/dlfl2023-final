@@ -42,7 +42,7 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None, channels_f
             labels.append(target[:,21].to("cpu"))
             
             if (i + 1) % 100 == 0:
-                print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
+                print(f"After {time.time() - start_time:.2f} seconds finished validating batch {i + 1} of {len(dataloader)}")
 
             del data
 

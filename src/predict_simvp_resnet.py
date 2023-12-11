@@ -139,8 +139,6 @@ def main():
     iou = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
     print(f"IOU: {iou(val_masks, val_labels)}")
 
-    val_masks = predict_resnet50(model, val_frames, device, batch_size=args.batch_size)
-
     if args.hidden_data:
         hidden_masks = predict_resnet50(model, hidden_frames, device, batch_size=args.batch_size) 
         print(hidden_masks.shape)
