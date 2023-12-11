@@ -20,19 +20,25 @@ import argparse
 import time
 
 
-def predict_segmentation(dataloader, model, device):
+def predict_segmentation(model, dataset, device, batch_size, channels_first=False):
 
     start_time = time.time()
 
     model.eval()
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 
     with torch.no_grad():
         masks = []
-        for batch in dataloader:
-            data = batch
+        for data in dataloader:
             data = data.to(device)
 
+            if channels_first:
+                data = data.transpose(1, 2)
             # Split video frames into first half
+            mask = model(data)
+            if not channels_first:
+                mask = mask.transpose(1, 2)
+
             mask = torch.argmax(model(data).transpose(1, 2), dim=1)
             masks.append(mask[:,10])
 
@@ -46,16 +52,16 @@ def main():
     parser = argparse.ArgumentParser(description="Running validation set.")
 
     # Data arguments
-    parser.add_argument('--data', type=str, required=True, help='Path to the training data (labeled) folder')
+    parser.add_argument('--val_data', type=str, required=True, help='Path to the training data base folder')
+    parser.add_argument('--hidden_data', default=None, help='Path to the hidden data folder')
     parser.add_argument('--model', default=None, help='Path to simvp mask model')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
     parser.add_argument('--channels_first', action='store_true', help='Wheter model expects channel dimension before all spatio temporal dims')
 
-
     # Parsing arguments
     args = parser.parse_args()
 
-    print(f"Training data folder: {args.data}")
+    print(f"Training data folder: {args.val_data}")
     print(f"Model: {args.model}")
     
     # Define model
@@ -71,17 +77,19 @@ def main():
         print("Using CPU!")
 
     # Load Data
-    # hidden_dataset = LabeledDataset(args.data)
-    val_dataset = ValidationDataset(args.data)
-    # hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
+    val_dataset = ValidationDataset(args.val_data)
 
     iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size, channels_first=args.channels_first)
-    # result_hidden = predict_segmentation(val_dataloader, model, device)
 
     print(f"IOU: {iou}")
 
-    torch.save(result_val, "val.tensor")
-    # torch.save(result_hidden, "hidden.tensor")
+    torch.save(result_val, f"{os.path.basename(args.model)}_val.tensor")
+
+
+    if args.hidden_data:
+        hidden_dataset = hidden_dataset(args.hidden_data)
+        result_hidden = predict_segmentation(model, device)
+        torch.save(result_hidden, f"{os.path.basename(args.model)}_hidden.tensor")
 
 
 

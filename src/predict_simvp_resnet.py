@@ -3,7 +3,7 @@
 
 # Local imports
 from data import ValidationDataset
-from unet.unet import unet
+from unet.unet import UNetWithResnet50Encoderrm 
 
 # DL packages
 import torch
