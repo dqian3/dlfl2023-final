@@ -24,7 +24,7 @@ NUM_FRAMES = 22
 SPLIT = 11
 
 
-def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, target_frames=(11, 22)):
+def train_segmentation(dataloader, model, criterion, optimizer, device, epoch):
     total_loss = 0
 
     start_time = time.time()
@@ -42,9 +42,9 @@ def train_segmentation(dataloader, model, criterion, optimizer, device, epoch, t
         # Transpose, since video resnet expects channels as first dim
         x = x.transpose(1, 2)
 
-        # get mask by itself
-        # Dim = (B x 160 x 240)
-        label_masks = labels[:,target_frames[0]:target_frames[1]].long()
+        # get masks
+        # Dim = (B x 11 x 160 x 240)
+        label_masks = labels[:,11:22].long()
 
         # Predict and backwards
         pred_masks = model(x)
@@ -99,9 +99,8 @@ def main():
     print(f"Batch size: {args.batch_size}")
     print(f"SGD learning rate: {args.lr}")
 
-    target_frames = (0, 11) if args.no_prediction else (11, 22)
-    print(f"Training segmentation for frames {target_frames}")
-
+    # target_frames = (0, 11) if args.no_prediction else (11, 22)
+    # print(f"Training segmentation for frames {target_frames}")
 
     # Define model
     if args.checkpoint:
@@ -176,10 +175,10 @@ def main():
     best_iou = 0
 
     for i in iterator:
-        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1, target_frames=target_frames)
+        epoch_loss = train_segmentation(train_dataloader, model, criterion, optimizer, device, i + 1)
         train_loss.append(epoch_loss)
 
-        val_iou = validate(model, val_dataset, device=device, target_frames=target_frames, channels_first=True)
+        val_iou = validate(model, val_dataset, device=device, channels_first=True)
         print(f"IOU of validation set at epoch {i + 1}: {val_iou:.4f}")
 
         # Save model if it has the best iou

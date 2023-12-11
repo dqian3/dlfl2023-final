@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Local imports
-from data import LabeledDataset, ValidationDataset
+from data import LabeledDataset, ValidationDataset, HiddenDataset
 from validate import validate
 from vidtoseg.parallel2dconv import Parallel2DResNet
 from vidtoseg.simsiam import SimSiamGSTA
@@ -87,8 +87,8 @@ def main():
 
 
     if args.hidden_data:
-        hidden_dataset = hidden_dataset(args.hidden_data)
-        result_hidden = predict_segmentation(model, device)
+        hidden_dataset = HiddenDataset(args.hidden_data)
+        result_hidden = predict_segmentation(model, hidden_dataset, device=device, batch_size=args.batch_size, channels_first=args.channels_first)
         torch.save(result_hidden, f"{os.path.basename(args.model)}_hidden.tensor")
 
 
