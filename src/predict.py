@@ -76,6 +76,8 @@ def main():
     iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size)
     # result_hidden = predict_segmentation(val_dataloader, model, device)
 
+    print(f"IOU: {iou}")
+
     torch.save(result_val, "val.tensor")
     # torch.save(result_hidden, "hidden.tensor")
 

@@ -34,7 +34,7 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
             masks.append(mask[:,10].to("cpu"))
             labels.append(target[:,21].to("cpu"))
             
-            if (i % 10 == 9):
+            if (i + 1) % 100 == 0:
                 print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
 
             del data
