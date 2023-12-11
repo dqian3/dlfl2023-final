@@ -29,7 +29,7 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
         data = data[:,:11]
 
         # Split video frames into first half
-        masks.append(model(data).detach()[:,11])
+        masks.append(model(data).detach()[:,10])
         labels.append(target[:,21])
         
         if (i % 100 == 99):
