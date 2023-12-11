@@ -63,13 +63,16 @@ def predict_resnet50(model, frames, device="cpu", batch_size=2):
         for (i, batch) in enumerate(dataloader):
             (batch,) = batch
             batch = batch.to(device)
+
+            batch = torch.nn.F.interpolate(batch, size=(256, 256), mode='bilinear', align_corners=False)
             mask = model(batch)
+            mask = torch.nn.F.interpolate(mask, size=(160, 240), mode='bilinear', align_corners=False)
+            mask = torch.argmax(mask, dim=1)
+
             masks.append(mask.to("cpu"))
-            
+
             if (i + 1) % 100 == 0:
                 print(f"After {time.time() - start_time:.2f} seconds finished predicting sample {i + 1} of {len(dataset)}")
-
-            del data
 
         masks = torch.cat(masks)
         return masks
