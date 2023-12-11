@@ -87,7 +87,7 @@ def main():
         print(f"Initializing model from weights of {args.checkpoint}")
 
     else:
-        model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=512, N_T=10, N_S=8, drop_path=0.1)
+        model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
         
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:

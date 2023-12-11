@@ -103,7 +103,7 @@ def main():
     else:
         if (args.pretrained is None):
             print(f"Initializing base model from random weights")
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=512, N_T=10, N_S=8, drop_path=0.1)
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
         else:
             print(f"Using pretrained base model {args.pretrained}")
             model = torch.load(args.pretrained)
