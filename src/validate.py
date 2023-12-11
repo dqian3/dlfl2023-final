@@ -29,10 +29,10 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
         data = data[:,:11]
 
         # Split video frames into first half
-        masks.append(model(data).detach()[:,10])
-        labels.append(target[:,21])
+        masks.append(model(data).to("cpu").detach()[:,10])
+        labels.append(target[:,21].to("cpu"))
         
-        if (i % 100 == 99):
+        if (i % 10 == 99):
             print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
 
         del data
