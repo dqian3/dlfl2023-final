@@ -31,7 +31,7 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
 
             # Split video frames into first half
             mask = torch.argmax(model(data).transpose(1, 2), dim=1)
-            masks.append(mask[:,11].to("cpu"))
+            masks.append(mask[:,10].to("cpu"))
             labels.append(target[:,21].to("cpu"))
             
             if (i % 10 == 9):

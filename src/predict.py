@@ -34,7 +34,7 @@ def predict_segmentation(dataloader, model, device):
 
             # Split video frames into first half
             mask = torch.argmax(model(data).transpose(1, 2), dim=1)
-            masks.append(mask[:,11])
+            masks.append(mask[:,10])
 
     print(f"Took {(time.time() - start_time):2f} s")
     result = torch.stack(masks)
