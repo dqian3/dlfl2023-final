@@ -29,7 +29,7 @@ def unresize_mask(mask):
 
 
 class VideoDataset(Dataset):
-    def __init__(self, root_dir, size, idx_offset=0, has_label=True, num_frames=22):
+    def __init__(self, root_dir, size, idx_offset=0, has_label=True, num_frames=22, label_dir=None):
         self.root_dir = root_dir
         self.size = size
         self.idx_offset = idx_offset
@@ -78,5 +78,5 @@ def UnlabeledDataset(base_dir):
 def ValidationDataset(base_dir):
     return VideoDataset(os.path.join(base_dir, "val"), 1000, idx_offset=1000)
 
-def HiddenDataset(base_dir):
-    return VideoDataset(os.path.join(base_dir, "hidden"), 2000, idx_offset=15000, is_hidden=True)
+def HiddenDataset(hidden):
+    return VideoDataset(os.path.join(hidden), 2000, idx_offset=15000, num_frames=11, has_label=False)

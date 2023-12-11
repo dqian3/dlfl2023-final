@@ -18,8 +18,7 @@ class SimVP_Model(nn.Module):
             input_resolution=(H, W), model_type=model_type,
             mlp_ratio=mlp_ratio, drop=drop, drop_path=drop_path)
     
-     
-
+        self.hid_S = hid_S
         self.in_shape = in_shape
         self.out_shape = in_shape
         

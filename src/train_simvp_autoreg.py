@@ -91,11 +91,14 @@ def main():
 
     else:
         if args.size == "large":
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=512, N_T=10, N_S=8, drop_path=0.1)
+            raise NotImplementedError()
+            # model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=512, N_T=10, N_S=8, drop_path=0.1)
         elif args.size == "med":
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
+            raise NotImplementedError()
+            # model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
         else:
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S= 64, hid_T= 512, N_T=8, N_S=4, drop_path=0.1)
+            # hidden channels are divisible by 3
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=120, hid_T=510, N_T=8, N_S=4, drop_path=0.1)
 
         model.out_shape = (3, 160, 240)
 
