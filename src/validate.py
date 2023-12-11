@@ -32,6 +32,8 @@ def validate(model, dataset, device="cpu", batch_size=2, sample=None):
         masks.append(model(data).detach())
         labels.append(target)
 
+        del data
+
     masks = torch.stack(masks)
     labels = torch.stack(labels)
 
