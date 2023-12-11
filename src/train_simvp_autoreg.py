@@ -39,6 +39,8 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
             output = model(x1)
             loss += criterion(output, x2)
 
+        loss /= 11
+
         total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
