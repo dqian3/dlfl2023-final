@@ -72,7 +72,7 @@ def main():
     val_dataset = ValidationDataset(args.data)
     hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
 
-    iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size)
+    iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size, sample=100)
     # result_hidden = predict_segmentation(val_dataloader, model, device)
 
     torch.save(result_val, "val.tensor")
