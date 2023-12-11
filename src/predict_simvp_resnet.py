@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Local imports
-from data import ValidationDataset
+from data import ValidationDataset, HiddenDataset
 from unet.unet import * 
 
 # DL packages
@@ -25,7 +25,12 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
 
     with torch.no_grad():
         for (i, batch) in enumerate(dataloader):
-            data, target = batch
+
+            if (has_labels):
+                data, target = batch
+            else:
+                data = batch
+
             data = data.to(device)
             data = data[:,:11]
 
@@ -46,8 +51,9 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
 
         if (has_labels):
             labels = torch.cat(labels) # 1k x 160 x 240
-
-        return frames, labels
+            return frames, labels
+        else:
+            return frames
 
 
 def predict_resnet50(model, frames, device="cpu", batch_size=2):
@@ -83,6 +89,7 @@ def main():
 
     # Data arguments
     parser.add_argument('--data', type=str, required=True, help='Path to the training data (labeled) folder')
+    parser.add_argument('--hidden_data', default=None, default=5, help='Path to hidden data')
     parser.add_argument('--simvp', default=None, help='Path to pretrained simvp')
     parser.add_argument('--unet', default=None, help='Path to pretrained unet')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
@@ -106,11 +113,11 @@ def main():
         print("Using CPU!")
 
     # Load Data
-    # hidden_dataset = LabeledDataset(args.data)
+    hidden_dataset = HiddenDataset(args.hidden_data)
     val_dataset = ValidationDataset(args.data)
-    # hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
 
     val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size)
+    hidden_frames = predict_simvp(model, hidden_dataset, device, batch_size=args.batch_size, has_labels=False)
     del model
 
     model = torch.load(args.unet, map_location=torch.device('cpu'))
@@ -130,7 +137,11 @@ def main():
     iou = torchmetrics.JaccardIndex(task="multiclass", num_classes=49)
     print(f"IOU: {iou(val_masks, val_labels)}")
 
+    val_masks = predict_resnet50(model, val_frames, device, batch_size=args.batch_size)
+    hidden_masks = predict_resnet50(model, hidden_masks, device, batch_size=args.batch_size) 
 
+    print(hidden_masks.shape)
+    torch.save(hidden_masks, "simvp_unet_hidden.pth")
 
 if __name__ == "__main__":
     main()
