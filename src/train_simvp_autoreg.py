@@ -33,16 +33,19 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
 
         data = data.to(device)
 
+        loss = None
         # Split video frames into multiple sequences of 11 and then 1 frame
         for target_frame in range(11, 22):
             x1 = data[:, target_frame-11:target_frame]
             x2 = data[:, target_frame]
             output = model(x1).squeeze(1) # squueze last frame dim away
-            loss += criterion(output, x2)
+            
+            if (loss is None):
+                loss = criterion(output, x2)
+            else:
+                loss += criterion(output, x2)
 
-        loss /= 11
-
-        total_loss += loss.item()
+        total_loss += loss.item() / 11
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()

@@ -51,6 +51,11 @@ class VideoDataset(Dataset):
     def __getitem__(self, i):
         img_dir = os.path.join(self.root_dir, f"video_{self.idx_offset + i}")
 
+        if (label_dir):
+            label_dir = os.path.join(self.label_dir, f"video_{self.idx_offset + i}")
+        else:
+            label_dir = img_dir
+
         frames = [Image.open(os.path.join(img_dir, f"image_{j}.png")) for j in range(self.num_frames)]
 
         # Load the frames into data
@@ -62,7 +67,7 @@ class VideoDataset(Dataset):
             frame.close()
         
         if (self.has_label):
-            label = np.load(os.path.join(img_dir, "mask.npy"))
+            label = np.load(os.path.join(label_dir, "mask.npy"))
             return data, label
 
         return data
@@ -74,6 +79,9 @@ def LabeledDataset(base_dir):
 
 def UnlabeledDataset(base_dir):
     return VideoDataset(os.path.join(base_dir, "unlabeled"), 13000, idx_offset=2000, has_label=False)
+
+def UnetLabeledDataset(base_dir, unet_dir):
+    return VideoDataset(os.path.join(base_dir, "unlabeled"), 13000, idx_offset=2000, label_dir=unet_dir, has_label=True)
 
 def ValidationDataset(base_dir):
     return VideoDataset(os.path.join(base_dir, "val"), 1000, idx_offset=1000)

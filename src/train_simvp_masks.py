@@ -71,6 +71,7 @@ def main():
 
     # Data arguments
     parser.add_argument('--train_data', type=str, required=True, help='Path to the training data (labeled) folder')
+    parser.add_argument('--unet_labels', default=None, help='Path to the unet_labels (unlabeled data segmented by unet) folder')
     parser.add_argument('--output', type=str, default="final_model.pkl", help='Path to the output folder')
     parser.add_argument('--pretrained', default=None, help='Path to pretrained simsiam network (or start a fresh one)')
     parser.add_argument('--checkpoint', default=None, help='Path to the model checkpoint to continue training off of')
@@ -117,7 +118,6 @@ def main():
             model = torch.load(args.pretrained)
 
 
-        
         model.dec = Decoder(C_hid=128 if (args.size == "med" or args.size == "large") else 64, C_out=49, N_S=8, spatio_kernel=3)
         model.out_shape = (11,49,160,240)
 
@@ -128,7 +128,14 @@ def main():
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
 
     # Load Data
-    dataset = LabeledDataset(args.train_data)
+    if args.unet_labels:
+        dataset = LabeledDataset(args.train_data)
+        unet_labeled_dataset = UnetLabeledDataset(args.train_data, args.unet_labels)
+        dataset = torch.utils.data.ConcatDataset([dataset, unet_labeled_dataset])
+    else:
+        dataset = LabeledDataset(args.train_data)
+
+
     val_dataset = ValidationDataset(args.train_data)
     train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 

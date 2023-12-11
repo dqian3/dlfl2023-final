@@ -40,7 +40,7 @@ def predict_segmentation(model, dataset, device, batch_size, channels_first=Fals
                 mask = mask.transpose(1, 2)
 
             mask = torch.argmax(model(data).transpose(1, 2), dim=1)
-            masks.append(mask[:,10])
+            masks.append(mask[:,10].to("cpu"))
 
     print(f"Took {(time.time() - start_time):2f} s")
     result = torch.stack(masks)
@@ -84,7 +84,7 @@ def main():
     print(f"IOU: {iou}")
 
     torch.save(result_val, f"{os.path.basename(args.model)}_val.tensor")
-
+    del result_val
 
     if args.hidden_data:
         hidden_dataset = HiddenDataset(args.hidden_data)
