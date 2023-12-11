@@ -15,7 +15,7 @@ import argparse
 import time
 
 
-def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
+def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, target_frame=21):
     start_time = time.time()
     print(f"Predicting SimVP results")
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
@@ -36,11 +36,11 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
 
             # Split video frames into first half
             frame = model(data)
-            frames.append(frame[:,10].to("cpu"))
+            frames.append(frame[:,target_frame - 11].to("cpu"))
 
             if (has_labels):
                 target = target.to(device)
-                labels.append(target[:,21].to("cpu"))
+                labels.append(target[:,target_frame].to("cpu"))
 
             if (i + 1) % 100 == 0:
                 print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
@@ -93,6 +93,7 @@ def main():
     parser.add_argument('--simvp', default=None, help='Path to pretrained simvp')
     parser.add_argument('--unet', default=None, help='Path to pretrained unet')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
+    parser.add_argument('--target_frame', type=int, default=21, help='index of frame in sequence we want to segment and validate')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -113,7 +114,7 @@ def main():
         print("Using CPU!")
 
     val_dataset = ValidationDataset(args.data)
-    val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size)
+    val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size, target_frame=args.target_frame)
 
     if args.hidden_data:
         hidden_dataset = HiddenDataset(args.hidden_data)
