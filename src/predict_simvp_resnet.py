@@ -89,7 +89,7 @@ def main():
 
     # Data arguments
     parser.add_argument('--data', type=str, required=True, help='Path to the training data (labeled) folder')
-    parser.add_argument('--hidden_data', default=None, default=5, help='Path to hidden data')
+    parser.add_argument('--hidden_data', default=None, help='Path to hidden data')
     parser.add_argument('--simvp', default=None, help='Path to pretrained simvp')
     parser.add_argument('--unet', default=None, help='Path to pretrained unet')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
