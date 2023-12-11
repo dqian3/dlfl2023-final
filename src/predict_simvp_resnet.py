@@ -60,7 +60,7 @@ def predict_resnet50(model, frames, device="cpu"):
     model.eval()
     with torch.no_grad():
         for (i, frame) in enumerate(dataset):
-            frame, _ = frame
+            (frame,) = frame
             frame = frame.to(device)
             mask = model(frame)
             masks.append(mask.to("cpu"))
