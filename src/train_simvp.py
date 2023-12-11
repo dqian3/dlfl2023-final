@@ -70,6 +70,7 @@ def main():
 
     # Other args
     parser.add_argument('--use_tqdm', action='store_true', help='Use tqdm in output')
+    parser.add_argument('--size', type=str, default="small", help='Size of model')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -87,8 +88,13 @@ def main():
         print(f"Initializing model from weights of {args.checkpoint}")
 
     else:
-        model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
-        
+        if args.size == "large":
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=512, N_T=10, N_S=8, drop_path=0.1)
+        elif args.size == "med":
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
+        else:
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S= 64, hid_T= 512, N_T=8, N_S=4, drop_path=0.1)
+
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
             print(f"Using {torch.cuda.device_count()} GPUs!")
