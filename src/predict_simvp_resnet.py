@@ -42,7 +42,7 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
 
             del data
 
-        frames = torch.stack(frames)
+        frames = torch.stack(frames) # 1k x 3 x 160 x 240
 
         if (has_labels):
             labels = torch.stack(labels) # 1k x 160 x 240
@@ -55,19 +55,17 @@ def predict_resnet50(model, frames, device="cpu", batch_size=2):
     print(f"Predicting Resnet50 results")
 
     dataset = torch.utils.data.TensorDataset(frames)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
-
     masks = []
 
     with torch.no_grad():
-        for (i, frame) in enumerate(dataloader):
+        for (i, frame) in enumerate(dataset):
             frame, _ = frame
             frame = frame.to(device)
             mask = model(frame)
             masks.append(mask.to("cpu"))
             
             if (i + 1) % 100 == 0:
-                print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
+                print(f"After {time.time() - start_time:.2f} seconds finished predicting sample {i + 1} of {len(dataset)}")
 
             del data
 
@@ -110,7 +108,6 @@ def main():
 
     val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size)
     del model
-
 
     model = torch.load(args.unet, map_location=torch.device('cpu'))
     print(f"unet has {sum(p.numel() for p in model.parameters())} params")
