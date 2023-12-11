@@ -67,7 +67,6 @@ def train(dataloader, model, criterion, optimizer, device, epoch):
     return total_loss / len(dataloader)
 
 
-
 def auto_regressive_loss(model, data, target):
     criterion = torch.nn.MSELoss()
     with torch.no_grad():
@@ -78,6 +77,20 @@ def auto_regressive_loss(model, data, target):
 
         return criterion(data[:,11:], target)
 
+
+class DecoderProxy(torch.nn.Module):
+    def __init__(self, decoder, hid_S):
+        super(DecoderProxy, self).__init__()
+        self.down_sample_skip = torch.nn.Conv2d(11 * hid_S, hid_S)
+        self.down_sample_hid = torch.nn.Conv2d(11 * hid_S, hid_S)
+        self.relu = torch.nn.ReLU()
+        self.decoder = decoder
+    
+    def forward(self, hid, skip):
+        hid = self.relu(self.down_sample_hid(hid))
+        skip = self.relu(self.down_sample_skip(skip))
+        return self.decoder(hid, skip)
+    
 
 
 def main():
@@ -120,10 +133,9 @@ def main():
             raise NotImplementedError()
             # model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
         else:
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=64, hid_T=128, N_T=6, N_S=4, drop_path=0.1)
-
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=64, hid_T=512, N_T=8, N_S=6, drop_path=0.1)
             model.out_shape = (1, 3, 160, 240)
-            model.dec = Decoder(11 * model.hid_S, 3, 4, 3)
+            model.dec = DecoderProxy(model.dec, 64)
 
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:
