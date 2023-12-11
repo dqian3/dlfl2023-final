@@ -88,4 +88,4 @@ def ValidationDataset(base_dir):
     return VideoDataset(os.path.join(base_dir, "val"), 1000, idx_offset=1000)
 
 def HiddenDataset(hidden):
-    return VideoDataset(os.path.join(hidden), 2000, idx_offset=15000, num_frames=11, has_label=False)
+    return VideoDataset(hidden, 2000, idx_offset=15000, num_frames=11, has_label=False)

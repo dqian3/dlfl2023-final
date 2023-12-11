@@ -112,12 +112,13 @@ def main():
         device = torch.device("cpu")
         print("Using CPU!")
 
-    # Load Data
-    hidden_dataset = HiddenDataset(args.hidden_data)
     val_dataset = ValidationDataset(args.data)
-
     val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size)
-    hidden_frames = predict_simvp(model, hidden_dataset, device, batch_size=args.batch_size, has_labels=False)
+
+    if args.hidden_data:
+        hidden_dataset = HiddenDataset(args.hidden_data)
+        hidden_frames = predict_simvp(model, hidden_dataset, device, batch_size=args.batch_size, has_labels=False)
+
     del model
 
     model = torch.load(args.unet, map_location=torch.device('cpu'))
@@ -138,10 +139,11 @@ def main():
     print(f"IOU: {iou(val_masks, val_labels)}")
 
     val_masks = predict_resnet50(model, val_frames, device, batch_size=args.batch_size)
-    hidden_masks = predict_resnet50(model, hidden_masks, device, batch_size=args.batch_size) 
 
-    print(hidden_masks.shape)
-    torch.save(hidden_masks, "simvp_unet_hidden.pth")
+    if args.hidden_data:
+        hidden_masks = predict_resnet50(model, hidden_frames, device, batch_size=args.batch_size) 
+        print(hidden_masks.shape)
+        torch.save(hidden_masks, "simvp_unet_hidden.pth")
 
 if __name__ == "__main__":
     main()
