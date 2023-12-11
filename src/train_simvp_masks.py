@@ -96,6 +96,21 @@ def main():
     print(f"Batch size: {args.batch_size}")
     print(f"Adam learning rate: {args.lr}")
 
+    if args.size == "large":
+        hid_S = 128
+        hid_T = 512
+        N_T = 10
+        N_S = 8
+    elif args.size == "med":
+        hid_S = 128
+        hid_T = 256
+        N_T = 8
+        N_S = 6
+    else:
+        hid_S = 64
+        hid_T = 512
+        N_T = 8
+        N_S = 4
 
     # Define model
     if args.checkpoint:
@@ -105,23 +120,6 @@ def main():
     else:
         if (args.pretrained is None):
             print(f"Initializing base model from random weights")
-
-            if args.size == "large":
-                hid_S = 128
-                hid_T = 512
-                N_T = 10
-                N_S = 8
-            elif args.size == "med":
-                hid_S = 128
-                hid_T = 256
-                N_T = 8
-                N_S = 6
-            else:
-                hid_S = 64
-                hid_T = 512
-                N_T = 8
-                N_S = 4
-
             model = SimVP_Model(in_shape=(11,3,160,240), hid_S=hid_S, hid_T=hid_T, N_T=N_T, N_S=N_S, drop_path=0.1)
         else:
             print(f"Using pretrained base model {args.pretrained}")
