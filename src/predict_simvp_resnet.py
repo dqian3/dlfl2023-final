@@ -41,7 +41,6 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
                 print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
 
             del data
-            break
 
         frames = torch.stack(frames)
 

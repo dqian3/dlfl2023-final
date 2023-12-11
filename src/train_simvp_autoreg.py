@@ -3,6 +3,7 @@
 
 # Local imports
 from data import UnlabeledDataset
+from simvp.modules import Decoder
 from simvp.simvp import SimVP_Model
 from util import save_model
 
@@ -97,9 +98,10 @@ def main():
             raise NotImplementedError()
             # model = SimVP_Model(in_shape=(11,3,160,240), hid_S=128, hid_T=400, N_T=8, N_S=6, drop_path=0.1)
         else:
-            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=64, hid_T=512, N_T=8, N_S=4, drop_path=0.1)
+            model = SimVP_Model(in_shape=(11,3,160,240), hid_S=64, hid_T=256, N_T=8, N_S=4, drop_path=0.1)
 
-        model.out_shape = (1, 3, 160, 240)
+            model.out_shape = (1, 3, 160, 240)
+            model.dec = Decoder(11 * model.hid_S, 3, 4, 3)
 
         print(f"Initializing model from random weights")
         if torch.cuda.device_count() > 1:

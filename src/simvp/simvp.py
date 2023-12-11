@@ -31,10 +31,18 @@ class SimVP_Model(nn.Module):
 
         z = embed.view(B, T, C_, H_, W_)
         hid = self.hid(z)
-        hid = hid.reshape(B*T, C_, H_, W_)
+
+        T_out = self.out_shape[0]
+        # print(hid.shape)
+        # print(skip.shape)
+
+        hid = hid.reshape(B*T_out, -1, H_, W_)
+        skip = skip.reshape(B*T_out, -1, H, W)
+
+        # print(hid.shape)
+        # print(skip.shape)
 
         Y = self.dec(hid, skip)
-
         Y = Y.reshape(B, *self.out_shape)
 
         return Y
