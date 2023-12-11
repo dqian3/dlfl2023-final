@@ -82,7 +82,7 @@ class DecoderProxy(torch.nn.Module):
     def __init__(self, decoder, hid_S):
         super(DecoderProxy, self).__init__()
         self.down_sample_skip = torch.nn.Conv2d(11 * hid_S, hid_S, 1)
-        self.down_sample_hid = torch.nn.Conv2d(11 * hid_S, hid_S)
+        self.down_sample_hid = torch.nn.Conv2d(11 * hid_S, hid_S, 1)
         self.relu = torch.nn.ReLU()
         self.decoder = decoder
     
