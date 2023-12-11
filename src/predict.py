@@ -83,13 +83,14 @@ def main():
 
     print(f"IOU: {iou}")
 
-    torch.save(result_val, f"{os.path.basename(args.model)}_val.tensor")
+    model_name, _ = os.path.splitext(os.path.basename(args.model))
+    torch.save(result_val, f"{model_name}_val.tensor")
     del result_val
 
     if args.hidden_data:
         hidden_dataset = HiddenDataset(args.hidden_data)
         result_hidden = predict_segmentation(model, hidden_dataset, device=device, batch_size=args.batch_size, channels_first=args.channels_first)
-        torch.save(result_hidden, f"{os.path.basename(args.model)}_hidden.tensor")
+        torch.save(result_hidden, f"{model_name}_hidden.tensor")
 
 
 

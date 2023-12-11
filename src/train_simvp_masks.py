@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # Local imports
-from data import LabeledDataset, ValidationDataset
+from data import LabeledDataset, ValidationDataset, UnetLabeledDataset
 from simvp.modules import Decoder
 from simvp.simvp import SimVP_Model
 from validate import validate
