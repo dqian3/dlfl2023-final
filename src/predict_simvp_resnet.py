@@ -25,7 +25,7 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True):
     print(f"Predicting SimVP results")
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 
-    frame = []
+    frames = []
     labels = []
 
     with torch.no_grad():
