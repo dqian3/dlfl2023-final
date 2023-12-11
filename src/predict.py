@@ -39,33 +39,6 @@ def predict_segmentation(dataloader, model, device):
     print(result.shape)
     return result
 
-def validate_segmentation(dataloader, model, device):
-    iou = torchmetrics.JaccardIndex(task="multiclass", num_classes=49).to(device)
-
-    start_time = time.time()
-
-    model.eval()
-
-    masks = []
-    labels = []
-    for batch in dataloader:
-        data, target = batch
-        data = data.to(device)
-        target = target.to(device)
-
-        # Split video frames into first half
-        masks.append(model(data))
-        labels.append(target)
-
-    print(f"Took {(time.time() - start_time):2f} s")
-    masks = torch.stack(masks)
-    print(masks.shape)
-    labels = torch.stack(labels)
-    print(labels.shape)
-
-    print(f"IOU: {iou(masks, labels)}")
-    return masks
-
 
 def main():
     parser = argparse.ArgumentParser(description="Running validation set.")
@@ -73,22 +46,16 @@ def main():
     # Data arguments
     parser.add_argument('--data', type=str, required=True, help='Path to the training data (labeled) folder')
     parser.add_argument('--model', default=None, help='Path to pretrained simsiam network (or start a fresh one)')
-    parser.add_argument('--checkpoint', default=None, help='Path to the model checkpoint to continue training off of')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
 
     # Parsing arguments
     args = parser.parse_args()
 
-    print(f"Base training data folder: {args.train_data}")
-    print(f"Model: {args.train_data}")
-    print(f"Output file: {args.output}")
+    print(f"Training data folder: {args.data}")
+    print(f"Model: {args.model}")
     
-    print(f"Number of epochs: {args.num_epochs}")
-    print(f"Batch size: {args.batch_size}")
-    print(f"SGD learning rate: {args.lr}")
-
     # Define model
-    model = torch.load(args.model)
+    model = torch.load(args.model, map_location=torch.device('cpu'))
     print(f"model has {sum(p.numel() for p in model.parameters())} params")
 
     if torch.cuda.is_available():
@@ -104,9 +71,8 @@ def main():
     hidden_dataset = LabeledDataset(args.data)
     val_dataset = ValidationDataset(args.data)
     hidden_dataloader = torch.utils.data.DataLoader(hidden_dataset, batch_size=args.batch_size, num_workers=2)
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, num_workers=2)
 
-    result_val = validate_segmentation(val_dataloader, model, device)
+    iou, result_val = validate(model, val_dataset, device=device, batch_size=args.batch_size)
     # result_hidden = predict_segmentation(val_dataloader, model, device)
 
     torch.save(result_val, "val.tensor")
