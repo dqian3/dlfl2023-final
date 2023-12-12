@@ -15,7 +15,7 @@ import argparse
 import time
 
 
-def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, target_frame=21):
+def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, target_frame=21, autoregress_len=None):
     start_time = time.time()
     print(f"Predicting SimVP results")
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
@@ -34,9 +34,15 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, t
             data = data.to(device)
             data = data[:,:11]
 
-            # Split video frames into first half
-            frame = model(data)
-            frames.append(frame[:,target_frame - 11].to("cpu"))
+            if (autoregress_len):
+                for i in range(autoregress_len):
+                    output = model(data[:,i:i+11])
+                    data = torch.cat((data, output), dim=1)
+                output = data[:,target_frame]
+                frames.append(output.to("cpu"))
+            else:
+                output = model(data)
+                frames.append(output[:,target_frame - 11].to("cpu"))
 
             if (has_labels):
                 target = target.to(device)
@@ -54,6 +60,7 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, t
             return frames, labels
         else:
             return frames
+
 
 
 def predict_resnet50(model, frames, device="cpu", batch_size=2):
@@ -94,6 +101,7 @@ def main():
     parser.add_argument('--unet', default=None, help='Path to pretrained unet')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
     parser.add_argument('--target_frame', type=int, default=21, help='index of frame in sequence we want to segment and validate')
+    parser.add_argument('--autoregression', type=int, default=None, help='Whether to predict frames autoregressively')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -114,7 +122,7 @@ def main():
         print("Using CPU!")
 
     val_dataset = ValidationDataset(args.data)
-    val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size, target_frame=args.target_frame)
+    val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size, target_frame=args.target_frame, autoregress_len=args.autoregression)
 
     if args.hidden_data:
         hidden_dataset = HiddenDataset(args.hidden_data)
