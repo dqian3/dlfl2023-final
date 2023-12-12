@@ -4,7 +4,7 @@
 # Local imports
 from data import UnlabeledDataset
 from simvp.modules import Decoder
-from simvp.simvp import SimVP_Model
+from simvp.simvp import DecoderProxy, SimVP_Model
 from util import save_model
 
 # DL packages
@@ -76,21 +76,6 @@ def auto_regressive_loss(model, data, target):
             data = torch.cat((data, output), dim=1)
 
         return criterion(data[:,11:], target)
-
-
-class DecoderProxy(torch.nn.Module):
-    def __init__(self, decoder, hid_S):
-        super(DecoderProxy, self).__init__()
-        self.down_sample_skip = torch.nn.Conv2d(11 * hid_S, hid_S, 1)
-        self.down_sample_hid = torch.nn.Conv2d(11 * hid_S, hid_S, 1)
-        self.relu = torch.nn.ReLU()
-        self.decoder = decoder
-    
-    def forward(self, hid, skip):
-        hid = self.relu(self.down_sample_hid(hid))
-        skip = self.relu(self.down_sample_skip(skip))
-        return self.decoder(hid, skip)
-    
 
 
 def main():

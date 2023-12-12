@@ -17,7 +17,7 @@ import time
 
 def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, target_frame=21, autoregress_len=None):
     start_time = time.time()
-    print(f"Predicting SimVP results")
+    print(f"Predicting SimVP results, autoregress_len={autoregress_len}")
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 
     frames = []
@@ -35,11 +35,14 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, t
             data = data[:,:11]
 
             if (autoregress_len):
-                for i in range(autoregress_len):
-                    output = model(data[:,i:i+11])
-                    data = torch.cat((data, output), dim=1)
+                for j in range(autoregress_len):
+                    output = model(data[:,j:j+11])
+                    data = torch.cat((data[:,0:j+11], output), dim=1)
                 output = data[:,target_frame]
                 frames.append(output.to("cpu"))
+
+                if (i == 0):
+                    torch.save(data, "test_autoregress.pt")
             else:
                 output = model(data)
                 frames.append(output[:,target_frame - 11].to("cpu"))
@@ -50,6 +53,7 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, t
 
             if (i + 1) % 100 == 0:
                 print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
+
 
             del data
 
