@@ -16,11 +16,11 @@ Note the code for SimVP was partially sourced from https://www.kaggle.com/code/s
 
 ## Train Unet
 Unet was trained separately, and the script is less developed, so you need to go in and edit the file
-to point to the datset. Specifically the two following lines need to be edited.
+to point to the datset. Specifically the two following lines (14, 17) need to be edited.
 
 ```
 dataset = LabeledDataset('/scratch/py2050/Dataset_Student/')
-
+...
 val_dataset = ValidationDataset('/scratch/py2050/Dataset_Student/')
 ```
 
@@ -29,7 +29,7 @@ Then the script can just be run without any arguments
 python train_unet.py
 ```
 
-The Unet 
+The Unet code was mostly sourced from https://github.com/rawmarshmellows/pytorch-unet-resnet-50-encoder/. Note we modified it to not use the pretrained weights.
 
 ## Predict on Hidden Dataset
 
