@@ -1,23 +1,7 @@
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
-from PIL import Image
-import numpy as np
-import torchvision
-from torchvision import models
-from torch.utils.data import DataLoader, Dataset
-import torch.utils.data as utils
-from torchvision import transforms
-import torch.nn.functional as F
-from torch.optim import Adam
-import cv2
-from torchmetrics import JaccardIndex
-import torch.utils.data as data_utils
-import os
-from data import UnlabeledDataset,LabeledDataset,ValidationDataset
-from tqdm import tqdm
 
-##################################################################################
+import torchvision.models
 
 # Unet basic model structures.
 class ConvBlock(nn.Module):
@@ -55,10 +39,12 @@ class Bridge(nn.Module):
     def forward(self, x):
         return self.bridge(x)
 
+
 class UpBlockForUNetWithResNet50(nn.Module):
     """
     Up block that encapsulates one up-sampling step which consists of Upsample -> ConvBlock -> ConvBlock
     """
+
     def __init__(self, in_channels, out_channels, up_conv_in_channels=None, up_conv_out_channels=None,
                  upsampling_method="conv_transpose"):
         super().__init__()
@@ -80,6 +66,7 @@ class UpBlockForUNetWithResNet50(nn.Module):
 
     def forward(self, up_x, down_x):
         """
+
         :param up_x: this is the output from the previous up block
         :param down_x: this is the output from the down block
         :return: upsampled feature map
@@ -96,7 +83,14 @@ class UNetWithResnet50Encoder(nn.Module):
 
     def __init__(self, n_classes=49):
         super().__init__()
-        resnet = models.resnet50(weights=None)
+#         byol_model = torch.load('/home/yz10727/data/best_model_SSL_1.pth')
+#         resnet=byol_model.target_encoder.net
+#         resnet.requires_grad = False
+        resnet = torchvision.models.resnet50(weights=None)
+#         resnet = torch.load('/scratch/yz10727/data/Pre_resnet50.pth')
+#         for param in resnet.parameters():
+#                 param.requires_grad = False
+#         resnet_up = models.resnet50(weights=ResNet50_Weights.DEFAULT)
         down_blocks = []
         up_blocks = []
         self.input_block = nn.Sequential(*list(resnet.children()))[:3]
@@ -116,6 +110,7 @@ class UNetWithResnet50Encoder(nn.Module):
                                                     up_conv_in_channels=128, up_conv_out_channels=64))
 
         self.up_blocks = nn.ModuleList(up_blocks)
+
         self.out = nn.Conv2d(64, n_classes, kernel_size=1, stride=1)
 
     def forward(self, x, with_output_feature_map=False):
@@ -124,14 +119,14 @@ class UNetWithResnet50Encoder(nn.Module):
         x = self.input_block(x)
         pre_pools[f"layer_1"] = x
         x = self.input_pool(x)
+        with torch.no_grad():
+            for i, block in enumerate(self.down_blocks, 2):
+                x = block(x)
+                if i == (UNetWithResnet50Encoder.DEPTH - 1):
+                    continue
+                pre_pools[f"layer_{i}"] = x
 
-        for i, block in enumerate(self.down_blocks, 2):
-            x = block(x)
-            if i == (UNetWithResnet50Encoder.DEPTH - 1):
-                continue
-            pre_pools[f"layer_{i}"] = x
-
-        x = self.bridge(x)
+            x = self.bridge(x)
 
         for i, block in enumerate(self.up_blocks, 1):
             key = f"layer_{UNetWithResnet50Encoder.DEPTH - 1 - i}"
@@ -143,73 +138,3 @@ class UNetWithResnet50Encoder(nn.Module):
             return x, output_feature_map
         else:
             return x
-        
-##################################################################################
-# Load the data with Daniel's data.py
-
-dataset = LabeledDataset('/scratch/py2050/Dataset_Student/')
-train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=1)
-
-val_dataset = ValidationDataset('/scratch/py2050/Dataset_Student/')
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=2, shuffle=True, num_workers=1)
-
-
-model_path = '/scratch/py2050/best_model_unet_50_py.pth' # your model path, remember to modify
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-model = UNetWithResnet50Encoder(n_classes=49).to(device)
-
-# training preparations
-model = torch.load('/scratch/py2050/best_model_unet_50_py.pth')
-criterion = criterion = nn.CrossEntropyLoss()
-# first 25 epochs: lr=0.003, try next 100 epochs: lr=0.0001, next 25 epochs: lr=5e-5, next 20 epochs: lr=5e-5
-optim = Adam(model.parameters(), lr=2e-5,weight_decay=0.0001) 
-num_epochs = 5
-best_val_acc = 0 #Use IOU, baseline~=0.925097
-jaccard = JaccardIndex(task="multiclass", num_classes=49).to(device)  
-
-##################################################################################
-
-for epoch in range(1, num_epochs+1):
-    print("Training epoch: ", epoch)
-    train_loss = 0   
-    val_IoU_accuracy = 0 
-    
-    model.train()
-    for data in tqdm(train_dataloader): 
-        input, label = data
-        input, label = input.to(device), label.to(device)
-        input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
-        label = label.reshape(-1,label.shape[2],label.shape[3])
-        outputs = model(input)
-        outputs = F.interpolate(outputs, size=(160, 240), mode='bilinear', align_corners=False)
-        loss = criterion(outputs, label.long())
-        loss.backward()   
-        optim.step()                                               
-        optim.zero_grad()                                           
-        train_loss += loss.item()  
-    train_loss /= (len(train_dataloader.dataset) * 22)   
-    
-    
-    print("Validating epoch: ", epoch)
-    model.eval()
-    for idx, data in enumerate(tqdm(val_dataloader)):
-        val_input, val_label = data
-        input, label = val_input.to(device), val_label.to(device)
-        input = input.reshape(-1,input.shape[2],input.shape[3],input.shape[4])
-        label = label.reshape(-1,label.shape[2],label.shape[3])
-        outputs = model(input)
-        outputs = F.interpolate(outputs, size=(160, 240), mode='bilinear', align_corners=False)
-        output = nn.LogSoftmax()(outputs)
-        output = torch.argmax(output, dim=1)
-        for i in range(label.shape[0]):
-            jac = jaccard(output[i], label[i].to(device))
-            val_IoU_accuracy += jac
-        if idx == 49: # shorten val time, val on first 22*50*2 images
-            break
-    val_IoU_accuracy /= (22*50*2)  # remember to modify based on sample val length
-    
-    print("Epoch{}: Training Loss:{:.6f}; Val IoU: {:.6f}.\n".format(epoch, train_loss, val_IoU_accuracy))
-    if best_val_acc < val_IoU_accuracy:
-        best_val_acc = val_IoU_accuracy
-        torch.save(model, model_path)  
-        print('Best model saved to: ', model_path)

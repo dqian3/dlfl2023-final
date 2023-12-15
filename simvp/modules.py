@@ -1,16 +1,14 @@
+'''
+Code taken from
+https://www.kaggle.com/code/simuzilisen/simvp
+'''
+
 import math
 import torch
 import torch.nn as nn
 from torch import Tensor
 from typing import Optional as _Optional
-import numpy as np
-from torch.optim import Adam
-from torch.utils.data import DataLoader
-import torch.nn.functional as F
-from tqdm import tqdm
-from torchmetrics.functional import structural_similarity_index_measure
-import torch.utils.data as data_utils
-
+import warnings
 
 class DWConv(nn.Module):
     def __init__(self, dim=768):

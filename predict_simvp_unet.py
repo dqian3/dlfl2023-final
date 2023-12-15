@@ -3,7 +3,9 @@
 
 # Local imports
 from data import ValidationDataset, HiddenDataset
-from unet.unet import * 
+from unet import * 
+from simvp.simvp import SimVP_Model
+from simvp.modules import *
 
 # DL packages
 import torch
@@ -15,9 +17,9 @@ import argparse
 import time
 
 
-def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, target_frame=21, autoregress_len=None):
+def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, target_frame=21):
     start_time = time.time()
-    print(f"Predicting SimVP results, autoregress_len={autoregress_len}")
+    print(f"Predicting SimVP results")
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=2)
 
     frames = []
@@ -34,28 +36,16 @@ def predict_simvp(model, dataset, device="cpu", batch_size=2, has_labels=True, t
             data = data.to(device)
             data = data[:,:11]
 
-            if (autoregress_len):
-                for j in range(autoregress_len):
-                    output = model(data[:,j:j+11])
-                    data = torch.cat((data[:,0:j+11], output), dim=1)
-                output = data[:,target_frame]
-                frames.append(output.to("cpu"))
-
-                if (i == 0):
-                    torch.save(data, "test_autoregress.pt")
-            else:
-                output = model(data)
-                frames.append(output[:,target_frame - 11].to("cpu"))
+            output = model(data)
+            frames.append(output[:,target_frame - 11].to("cpu"))
 
             if (has_labels):
                 target = target.to(device)
                 labels.append(target[:,target_frame].to("cpu"))
 
             if (i + 1) % 100 == 0:
-                print(f"After {time.time() - start_time:.2f} seconds finished training batch {i + 1} of {len(dataloader)}")
+                print(f"After {time.time() - start_time:.2f} seconds finished predicting batch {i + 1} of {len(dataloader)}")
 
-
-            del data
 
         frames = torch.cat(frames) # 1k x 3 x 160 x 240
 
@@ -101,11 +91,10 @@ def main():
     # Data arguments
     parser.add_argument('--data', type=str, required=True, help='Path to the training data (labeled) folder')
     parser.add_argument('--hidden_data', default=None, help='Path to hidden data')
-    parser.add_argument('--simvp', default=None, help='Path to pretrained simvp')
-    parser.add_argument('--unet', default=None, help='Path to pretrained unet')
+    parser.add_argument('--simvp', required=True, help='Path to pretrained simvp')
+    parser.add_argument('--unet', required=True, help='Path to pretrained unet')
     parser.add_argument('--batch_size', type=int, default=5, help='Batch size')
     parser.add_argument('--target_frame', type=int, default=21, help='index of frame in sequence we want to segment and validate')
-    parser.add_argument('--autoregression', type=int, default=None, help='Whether to predict frames autoregressively')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -126,7 +115,7 @@ def main():
         print("Using CPU!")
 
     val_dataset = ValidationDataset(args.data)
-    val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size, target_frame=args.target_frame, autoregress_len=args.autoregression)
+    val_frames, val_labels = predict_simvp(model, val_dataset, device, batch_size=args.batch_size, target_frame=args.target_frame)
 
     if args.hidden_data:
         hidden_dataset = HiddenDataset(args.hidden_data)
@@ -154,7 +143,7 @@ def main():
     if args.hidden_data:
         hidden_masks = predict_resnet50(model, hidden_frames, device, batch_size=args.batch_size) 
         print(hidden_masks.shape)
-        torch.save(hidden_masks, "simvp_unet_hidden.pth")
+        torch.save(hidden_masks, "simvp_unet_hidden.pt")
 
 if __name__ == "__main__":
     main()
