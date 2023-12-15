@@ -11,6 +11,9 @@ As an example, running in HPC used the following command.
 python --train_data /dataset --batch_size 6 
 ```
 
+Note the code for SimVP was partially sourced from https://www.kaggle.com/code/simuzilisen/simvp
+
+
 ## Train Unet
 Unet was trained separately, and the script is less developed, so you need to go in and edit the file
 to point to the datset. Specifically the two following lines need to be edited.
@@ -25,6 +28,8 @@ Then the script can just be run without any arguments
 ```
 python train_unet.py
 ```
+
+The Unet 
 
 ## Predict on Hidden Dataset
 
