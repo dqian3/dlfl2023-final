@@ -8,7 +8,7 @@ I encountered a max batch size of 3 per GPU before the GPUs would run out of mem
 As an example, running in HPC used the following command.
 
 ```
-python --train_data /dataset --batch_size 6 
+python train_simvp.py --train_data /dataset --batch_size 6 
 ```
 
 Note the code for SimVP was partially sourced from https://www.kaggle.com/code/simuzilisen/simvp
