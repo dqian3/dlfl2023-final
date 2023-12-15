@@ -1,3 +1,8 @@
+'''
+Code taken from
+https://www.kaggle.com/code/simuzilisen/simvp
+'''
+
 from .modules import *
 
 class SimVP_Model(nn.Module):
