@@ -15,9 +15,6 @@ import os
 import argparse
 import time
 
-from vidtoseg.simsiam_orig import SimSiam
-
-
 NUM_FRAMES = 22
 SPLIT = 11
 
@@ -59,7 +56,7 @@ def main():
     parser = argparse.ArgumentParser(description="Process training data parameters.")
 
     # Data arguments
-    parser.add_argument('--train_data', type=str, required=True, help='Path to the training (unlabeled) folder')
+    parser.add_argument('--train_data', type=str, required=True, help='Path to the root data folder')
     parser.add_argument('--output', type=str, default="simsiam.pkl", help='Path to the output folder')
     parser.add_argument('--checkpoint', default=None, help='Path to the model checkpoint to continue training off of')
 

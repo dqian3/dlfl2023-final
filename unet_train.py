@@ -164,8 +164,7 @@ criterion = criterion = nn.CrossEntropyLoss()
 # first 25 epochs: lr=0.003, try next 100 epochs: lr=0.0001, next 25 epochs: lr=5e-5, next 20 epochs: lr=5e-5
 optim = Adam(model.parameters(), lr=2e-5,weight_decay=0.0001) 
 num_epochs = 5
-best_train_acc = 1
-best_val_acc = 0.925097 #Use IOU, baseline~=0.925097
+best_val_acc = 0 #Use IOU, baseline~=0.925097
 jaccard = JaccardIndex(task="multiclass", num_classes=49).to(device)  
 
 ##################################################################################
